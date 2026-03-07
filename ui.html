@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Prototype Index</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0f;
+    --surface: #161618;
+    --surface2: #1e1e21;
+    --border: #2a2a2e;
+    --border-light: #333338;
+    --accent: #7c6af7;
+    --accent-dim: rgba(124,106,247,0.12);
+    --accent-glow: rgba(124,106,247,0.3);
+    --green: #3ecf8e;
+    --green-dim: rgba(62,207,142,0.12);
+    --text: #f0f0f4;
+    --text-muted: #8888a0;
+    --text-dim: #555568;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  html, body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.5;
+    height: 640px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .header-icon {
+    width: 26px; height: 26px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(124,106,247,0.5);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .header-icon svg { width: 13px; height: 13px; }
+  .header-info { flex: 1; min-width: 0; }
+  .header-title {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    color: var(--text); letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .header-file {
+    font-size: 9px; color: var(--text-dim);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-family: var(--mono);
+  }
+  .header-count {
+    font-family: var(--mono); font-size: 9px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(124,106,247,0.35);
+    color: var(--accent); padding: 2px 8px; border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+  .tab {
+    flex: 1; padding: 8px 12px;
+    font-family: var(--mono); font-size: 9px; font-weight: 500;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--text-dim); border: none; background: transparent;
+    cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all 0.15s; display: flex; align-items: center;
+    justify-content: center; gap: 5px;
+  }
+  .tab svg { width: 10px; height: 10px; }
+  .tab:hover { color: var(--text-muted); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    padding: 8px 14px;
+    display: flex; align-items: center; gap: 7px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg); flex-shrink: 0;
+  }
+  .btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border-radius: 5px;
+    font-family: var(--mono); font-size: 9px; font-weight: 500;
+    letter-spacing: 0.06em; cursor: pointer; border: 1px solid transparent;
+    transition: all 0.15s; white-space: nowrap; text-transform: uppercase;
+  }
+  .btn svg { width: 10px; height: 10px; flex-shrink: 0; }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #9180ff; box-shadow: 0 0 10px var(--accent-glow); }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-outline { background: transparent; color: var(--text-muted); border-color: var(--border-light); }
+  .btn-outline:hover { border-color: var(--text-muted); color: var(--text); }
+  .btn-watcher { background: var(--green-dim); color: var(--green); border-color: rgba(62,207,142,0.35); }
+  .btn-watcher:hover { background: rgba(62,207,142,0.2); }
+  .btn-watcher.active { background: var(--green); color: #0e0e0f; font-weight: 600; }
+  .watcher-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .btn-watcher.active .watcher-dot { animation: pulse 1.2s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.7)} }
+  .toolbar-spacer { flex: 1; }
+  .sort-btn {
+    display: flex; align-items: center; gap: 3px;
+    padding: 4px 8px; border-radius: 4px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-dim); font-family: var(--mono); font-size: 8px;
+    cursor: pointer; transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .sort-btn:hover { border-color: var(--border-light); color: var(--text-muted); }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    padding: 4px 14px; font-family: var(--mono); font-size: 8px;
+    color: var(--text-dim); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 7px;
+    flex-shrink: 0; background: var(--surface); min-height: 22px;
+  }
+  .status-bar.watching { color: var(--green); border-bottom-color: rgba(62,207,142,0.2); }
+  .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; }
+  .status-bar.watching .status-dot { background: var(--green); animation: pulse 1.2s ease infinite; }
+
+  /* ── PANEL VIEWS ── */
+  .panel { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .panel.active { display: flex; }
+
+  /* ── LIST ── */
+  .list-container {
+    flex: 1; overflow-y: auto; padding: 8px 10px;
+  }
+  .list-container::-webkit-scrollbar { width: 3px; }
+  .list-container::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+  .page-group { margin-bottom: 14px; }
+  .page-label {
+    font-family: var(--mono); font-size: 8px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim);
+    padding: 0 3px 5px; border-bottom: 1px solid var(--border);
+    margin-bottom: 5px; display: flex; align-items: center; gap: 5px;
+  }
+  .page-label::before { content:''; width:3px; height:3px; background:var(--accent); border-radius:50%; display:inline-block; }
+
+  .proto-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 7px;
+    margin-bottom: 5px; display: flex; cursor: pointer;
+    transition: border-color 0.12s, transform 0.1s; overflow: hidden;
+  }
+  .proto-card:hover { border-color: var(--border-light); transform: translateY(-1px); }
+  .proto-card.is-starting { border-left: 2px solid var(--accent); }
+
+  .proto-thumb {
+    width: 52px; flex-shrink: 0; background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .thumb-inner { width: 34px; }
+  .thumb-frame {
+    width: 100%; background: var(--surface); border: 1px solid var(--border-light); border-radius: 2px;
+    display: flex; flex-direction: column; gap: 2px; padding: 3px;
+  }
+  .thumb-line { height: 2px; background: var(--border-light); border-radius: 1px; }
+
+  .proto-body { padding: 8px 9px; flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .proto-name { font-size: 11px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .proto-frame-name {
+    font-size: 9px; color: var(--text-dim); font-family: var(--mono);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-top: -1px;
+  }
+  .proto-url-link {
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(124,106,247,0.4);
+    text-underline-offset: 2px;
+  }
+  .proto-url-link:hover { opacity: 1; text-decoration-color: var(--accent); }
+  .proto-url {
+    font-family: var(--mono); font-size: 8px; color: var(--accent); opacity: 0.75;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .proto-meta { display: flex; align-items: center; gap: 7px; }
+  .meta-tag { font-family: var(--mono); font-size: 8px; color: var(--text-dim); display: flex; align-items: center; gap: 2px; }
+  .badge-flow {
+    font-family: var(--mono); font-size: 7px; font-weight: 600;
+    padding: 1px 5px; border-radius: 3px;
+    background: var(--green-dim); color: var(--green);
+    border: 1px solid rgba(62,207,142,0.3);
+  }
+
+  /* ── GENERATE PANEL ── */
+  .gen-panel {
+    flex: 1; overflow-y: auto; padding: 14px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .gen-panel::-webkit-scrollbar { width: 3px; }
+  .gen-panel::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+  .gen-section { display: flex; flex-direction: column; gap: 8px; }
+  .gen-section-title {
+    font-family: var(--mono); font-size: 8px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim);
+  }
+
+  /* Layout selector */
+  .layout-options { display: flex; gap: 8px; }
+  .layout-opt {
+    flex: 1; border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 8px; cursor: pointer; transition: all 0.15s;
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    background: var(--surface);
+  }
+  .layout-opt:hover { border-color: var(--border-light); }
+  .layout-opt.selected { border-color: var(--accent); background: var(--accent-dim); }
+  .layout-preview { width: 60px; height: 44px; position: relative; }
+
+  /* List preview */
+  .lp-list { display: flex; flex-direction: column; gap: 3px; width: 100%; height: 100%; justify-content: center; }
+  .lp-list-row { height: 10px; background: var(--surface2); border: 1px solid var(--border-light); border-radius: 2px; display: flex; align-items: center; padding: 2px; gap: 2px; }
+  .lp-list-thumb { width: 8px; height: 8px; background: var(--border); border-radius: 1px; flex-shrink: 0; }
+  .lp-list-lines { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+  .lp-list-line { height: 2px; background: var(--border); border-radius: 1px; }
+  .layout-opt.selected .lp-list-row { border-color: rgba(124,106,247,0.4); }
+  .layout-opt.selected .lp-list-line { background: rgba(124,106,247,0.4); }
+
+  /* Grid preview */
+  .lp-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 3px; width: 100%; height: 100%; }
+  .lp-grid-cell { background: var(--surface2); border: 1px solid var(--border-light); border-radius: 2px; display: flex; flex-direction: column; overflow: hidden; }
+  .lp-grid-img { flex: 1; background: var(--border); }
+  .lp-grid-text { height: 6px; padding: 1px 2px; display: flex; flex-direction: column; gap: 1px; }
+  .lp-grid-line { height: 1px; background: var(--border-light); border-radius: 1px; }
+  .layout-opt.selected .lp-grid-cell { border-color: rgba(124,106,247,0.4); }
+
+  .layout-label { font-family: var(--mono); font-size: 9px; font-weight: 500; color: var(--text-muted); }
+  .layout-opt.selected .layout-label { color: var(--accent); }
+
+  /* Toggle option */
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+    padding: 9px 12px;
+  }
+  .toggle-info { display: flex; flex-direction: column; gap: 2px; }
+  .toggle-name { font-size: 11px; font-weight: 500; color: var(--text); }
+  .toggle-desc { font-size: 9px; color: var(--text-dim); font-family: var(--mono); }
+  .toggle {
+    width: 32px; height: 17px; border-radius: 9px; background: var(--border);
+    border: none; cursor: pointer; position: relative; transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 13px; height: 13px; border-radius: 50%; background: var(--text-dim);
+    transition: transform 0.2s, background 0.2s;
+  }
+  .toggle.on { background: var(--accent-dim); border: 1px solid rgba(124,106,247,0.4); }
+  .toggle.on::after { transform: translateX(14px); background: var(--accent); }
+
+  /* Preview stats */
+  .preview-box {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .preview-title { font-family: var(--mono); font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); }
+  .preview-stats { display: flex; gap: 0; }
+  .preview-stat {
+    flex: 1; display: flex; flex-direction: column; gap: 2px;
+    padding-right: 14px; border-right: 1px solid var(--border);
+  }
+  .preview-stat:last-child { border-right: none; padding-right: 0; padding-left: 14px; }
+  .preview-stat:first-child { padding-left: 0; }
+  .preview-stat-val { font-family: var(--mono); font-size: 16px; font-weight: 600; color: var(--accent); line-height: 1; }
+  .preview-stat-label { font-family: var(--mono); font-size: 8px; color: var(--text-dim); }
+  .preview-note { font-size: 9px; color: var(--text-dim); font-family: var(--mono); line-height: 1.5; }
+
+  /* Generate button */
+  .gen-btn {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 12px; border-radius: 8px;
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    letter-spacing: 0.06em; cursor: pointer; border: none;
+    background: var(--accent); color: #fff; text-transform: uppercase;
+    transition: all 0.15s; width: 100%;
+  }
+  .gen-btn:hover { background: #9180ff; box-shadow: 0 0 16px var(--accent-glow); }
+  .gen-btn:active { transform: scale(0.98); }
+  .gen-btn:disabled { opacity: 0.5; pointer-events: none; }
+  .gen-btn svg { width: 14px; height: 14px; }
+  .gen-btn.generating { background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); }
+
+  /* Spinner */
+  .spinner {
+    width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: #fff; border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Success state */
+  .success-box {
+    background: var(--green-dim); border: 1px solid rgba(62,207,142,0.3);
+    border-radius: 8px; padding: 12px; display: none; flex-direction: column; gap: 6px;
+  }
+  .success-box.show { display: flex; }
+  .success-title { font-size: 11px; font-weight: 500; color: var(--green); display: flex; align-items: center; gap: 6px; }
+  .success-title svg { width: 12px; height: 12px; }
+  .success-desc { font-size: 9px; color: var(--text-muted); font-family: var(--mono); }
+
+  /* Error state */
+  .error-box {
+    background: rgba(240,82,82,0.08); border: 1px solid rgba(240,82,82,0.3);
+    border-radius: 8px; padding: 10px; display: none;
+    font-size: 9px; color: #f05252; font-family: var(--mono);
+  }
+  .error-box.show { display: block; }
+
+  /* ── EMPTY & LOADING ── */
+  .empty-state, .loading-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 32px 20px; text-align: center; gap: 8px;
+  }
+  .empty-icon {
+    width: 40px; height: 40px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 4px;
+  }
+  .empty-icon svg { width: 18px; height: 18px; color: var(--text-dim); }
+  .empty-title { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+  .empty-desc { font-size: 9px; color: var(--text-dim); max-width: 200px; line-height: 1.6; font-family: var(--mono); }
+  .loading-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; }
+  .loading-cell {
+    width: 9px; height: 9px; background: var(--accent); border-radius: 2px;
+    animation: gpulse 1.2s ease infinite;
+  }
+  .loading-cell:nth-child(1){animation-delay:.0s} .loading-cell:nth-child(2){animation-delay:.1s}
+  .loading-cell:nth-child(3){animation-delay:.2s} .loading-cell:nth-child(4){animation-delay:.3s}
+  .loading-cell:nth-child(5){animation-delay:.4s} .loading-cell:nth-child(6){animation-delay:.5s}
+  .loading-cell:nth-child(7){animation-delay:.6s} .loading-cell:nth-child(8){animation-delay:.7s}
+  .loading-cell:nth-child(9){animation-delay:.8s}
+  @keyframes gpulse { 0%,100%{opacity:.15;transform:scale(.8)} 50%{opacity:1;transform:scale(1)} }
+  .loading-text { font-family: var(--mono); font-size: 9px; color: var(--text-dim); letter-spacing:.08em; text-transform:uppercase; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; top: 8px; left: 50%; transform: translateX(-50%) translateY(-20px);
+    background: var(--green); color: #0e0e0f;
+    font-family: var(--mono); font-size: 8px; font-weight: 600;
+    padding: 4px 12px; border-radius: 20px; opacity: 0; pointer-events: none;
+    transition: all 0.25s; letter-spacing: .06em; text-transform: uppercase; z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── FOOTER ── */
+  .footer {
+    padding: 6px 14px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; background: var(--surface);
+  }
+  .footer-label { font-family: var(--mono); font-size: 8px; color: var(--text-dim); }
+  .footer-label span { color: var(--accent); }
+
+  /* Copied */
+  .copied {
+    position: fixed; bottom: 36px; right: 12px;
+    background: var(--surface2); border: 1px solid var(--border-light);
+    color: var(--text-muted); font-family: var(--mono); font-size: 8px;
+    padding: 3px 8px; border-radius: 3px; opacity: 0; pointer-events: none;
+    transition: opacity 0.2s; z-index: 100; text-transform: uppercase;
+  }
+  .copied.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+<div class="copied" id="copied">URL copiada</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-icon">
+    <svg viewBox="0 0 16 16" fill="none">
+      <rect x="1" y="1" width="6" height="6" rx="1" fill="#7c6af7"/>
+      <rect x="9" y="1" width="6" height="6" rx="1" fill="#7c6af7" opacity=".5"/>
+      <rect x="1" y="9" width="6" height="6" rx="1" fill="#7c6af7" opacity=".5"/>
+      <rect x="9" y="9" width="6" height="6" rx="1" fill="#7c6af7" opacity=".3"/>
+    </svg>
+  </div>
+  <div class="header-info">
+    <div class="header-title">Prototype Index</div>
+    <div class="header-file" id="file-name">Cargando…</div>
+  </div>
+  <div class="header-count" id="proto-count">—</div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" id="tab-list" onclick="switchTab('list')">
+    <svg viewBox="0 0 12 12" fill="none"><rect x="1" y="2" width="10" height="1.5" rx=".5" fill="currentColor"/><rect x="1" y="5" width="10" height="1.5" rx=".5" fill="currentColor"/><rect x="1" y="8" width="7" height="1.5" rx=".5" fill="currentColor"/></svg>
+    Índice
+  </button>
+  <button class="tab" id="tab-gen" onclick="switchTab('gen')">
+    <svg viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M4 6h4M6 4v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+    Generar Frame
+  </button>
+</div>
+
+<!-- ─────────────── INDEX PANEL ─────────────── -->
+<div class="panel active" id="panel-list">
+
+  <div class="toolbar">
+    <button class="btn btn-primary" id="refresh-btn" onclick="handleRefresh()">
+      <svg viewBox="0 0 12 12" fill="none"><path d="M10 6a4 4 0 11-1.17-2.83" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M8.5 2l.5 1.2L10.2 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Regenerar
+    </button>
+    <button class="btn btn-watcher" id="watcher-btn" onclick="toggleWatcher()">
+      <div class="watcher-dot"></div>
+      Watcher
+    </button>
+    <div class="toolbar-spacer"></div>
+    <button class="sort-btn" onclick="toggleSort()">
+      <span id="sort-label">A–Z</span>
+    </button>
+  </div>
+
+  <div class="status-bar" id="status-bar">
+    <div class="status-dot" id="status-dot"></div>
+    <span id="status-text">Listo</span>
+  </div>
+
+  <div class="list-container" id="list-container">
+    <div class="loading-state">
+      <div class="loading-grid">
+        <div class="loading-cell"></div><div class="loading-cell"></div><div class="loading-cell"></div>
+        <div class="loading-cell"></div><div class="loading-cell"></div><div class="loading-cell"></div>
+        <div class="loading-cell"></div><div class="loading-cell"></div><div class="loading-cell"></div>
+      </div>
+      <div class="loading-text">Escaneando proyecto…</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ─────────────── GENERATE PANEL ─────────────── -->
+<div class="panel" id="panel-gen">
+  <div class="gen-panel">
+
+    <!-- Layout -->
+    <div class="gen-section">
+      <div class="gen-section-title">Disposición</div>
+      <div class="layout-options">
+        <div class="layout-opt selected" id="opt-list" onclick="selectLayout('list')">
+          <div class="layout-preview">
+            <div class="lp-list">
+              <div class="lp-list-row"><div class="lp-list-thumb"></div><div class="lp-list-lines"><div class="lp-list-line" style="width:70%"></div><div class="lp-list-line" style="width:50%"></div></div></div>
+              <div class="lp-list-row"><div class="lp-list-thumb"></div><div class="lp-list-lines"><div class="lp-list-line" style="width:60%"></div><div class="lp-list-line" style="width:40%"></div></div></div>
+              <div class="lp-list-row"><div class="lp-list-thumb"></div><div class="lp-list-lines"><div class="lp-list-line" style="width:75%"></div><div class="lp-list-line" style="width:45%"></div></div></div>
+            </div>
+          </div>
+          <div class="layout-label">Lista</div>
+        </div>
+        <div class="layout-opt" id="opt-grid" onclick="selectLayout('grid')">
+          <div class="layout-preview">
+            <div class="lp-grid">
+              <div class="lp-grid-cell"><div class="lp-grid-img"></div><div class="lp-grid-text"><div class="lp-grid-line" style="width:70%"></div></div></div>
+              <div class="lp-grid-cell"><div class="lp-grid-img"></div><div class="lp-grid-text"><div class="lp-grid-line" style="width:50%"></div></div></div>
+              <div class="lp-grid-cell"><div class="lp-grid-img"></div><div class="lp-grid-text"><div class="lp-grid-line" style="width:60%"></div></div></div>
+              <div class="lp-grid-cell"><div class="lp-grid-img"></div><div class="lp-grid-text"><div class="lp-grid-line" style="width:40%"></div></div></div>
+              <div class="lp-grid-cell"><div class="lp-grid-img"></div><div class="lp-grid-text"><div class="lp-grid-line" style="width:65%"></div></div></div>
+              <div class="lp-grid-cell"><div class="lp-grid-img"></div><div class="lp-grid-text"><div class="lp-grid-line" style="width:55%"></div></div></div>
+            </div>
+          </div>
+          <div class="layout-label">Cuadrícula</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="gen-section">
+      <div class="gen-section-title">Opciones</div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-name">Mostrar URLs</div>
+          <div class="toggle-desc">Incluye el enlace directo al prototipo</div>
+        </div>
+        <button class="toggle on" id="toggle-urls" onclick="toggleOption('urls')"></button>
+      </div>
+      <div class="toggle-row" style="margin-top:6px">
+        <div class="toggle-info">
+          <div class="toggle-name">Crear página dedicada</div>
+          <div class="toggle-desc">Genera el frame en "📋 Prototype Index"</div>
+        </div>
+        <button class="toggle on" id="toggle-page" onclick="toggleOption('page')"></button>
+      </div>
+    </div>
+
+    <!-- Preview summary -->
+    <div class="preview-box">
+      <div class="preview-title">Resumen del frame</div>
+      <div class="preview-stats">
+        <div class="preview-stat">
+          <div class="preview-stat-val" id="prev-protos">0</div>
+          <div class="preview-stat-label">prototipos</div>
+        </div>
+        <div class="preview-stat">
+          <div class="preview-stat-val" id="prev-pages">0</div>
+          <div class="preview-stat-label">páginas</div>
+        </div>
+        <div class="preview-stat">
+          <div class="preview-stat-val">1200</div>
+          <div class="preview-stat-label">px ancho</div>
+        </div>
+      </div>
+      <div class="preview-note" id="prev-note">El frame se generará en la página "📋 Prototype Index" y se creará si no existe.</div>
+    </div>
+
+    <!-- Success -->
+    <div class="success-box" id="success-box">
+      <div class="success-title">
+        <svg viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 6l2 2 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Frame generado correctamente
+      </div>
+      <div class="success-desc" id="success-desc">El frame se ha creado en la página "📋 Prototype Index".</div>
+    </div>
+
+    <!-- Error -->
+    <div class="error-box" id="error-box"></div>
+
+    <!-- Generate button -->
+    <button class="gen-btn" id="gen-btn" onclick="generateFrame()">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Generar Frame en Figma
+    </button>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-label">Prototype Index <span>v1.1</span></div>
+  <div class="footer-label" id="last-updated">—</div>
+</div>
+
+<script>
+  // ── State ──
+  let prototypes = [];
+  let isWatching = false;
+  let sortAZ = true;
+  let selectedLayout = 'list';
+  let optUrls = true;
+  let optPage = true;
+  let toastTimer = null;
+
+  // ── Message handler ──
+  window.onmessage = (event) => {
+    const msg = event.data.pluginMessage;
+    if (!msg) return;
+    switch (msg.type) {
+      case 'INITIAL_DATA':
+        document.getElementById('file-name').textContent = msg.fileName || 'Archivo sin nombre';
+        renderPrototypes(msg.prototypes, msg.timestamp);
+        break;
+      case 'PROTOTYPES_DATA':
+        renderPrototypes(msg.prototypes, msg.timestamp);
+        break;
+      case 'PROTOTYPES_UPDATED':
+        renderPrototypes(msg.prototypes, msg.timestamp);
+        showToast('Lista actualizada');
+        break;
+      case 'WATCHER_STARTED':
+        isWatching = true; updateWatcherUI(); break;
+      case 'WATCHER_STOPPED':
+        isWatching = false; updateWatcherUI(); break;
+      case 'GENERATING':
+        setGenerating(true); break;
+      case 'FRAME_GENERATED':
+        setGenerating(false);
+        document.getElementById('success-box').classList.add('show');
+        document.getElementById('success-desc').textContent =
+          `${msg.totalCards} prototipos generados en la página "${msg.pageName}". Usa el panel "Índice" para navegar a los prototipos.`;
+        document.getElementById('error-box').classList.remove('show');
+        showToast('Frame generado ✓');
+        break;
+      case 'FRAME_ERROR':
+        setGenerating(false);
+        document.getElementById('error-box').classList.add('show');
+        document.getElementById('error-box').textContent = 'Error: ' + msg.error;
+        document.getElementById('success-box').classList.remove('show');
+        break;
+    }
+  };
+
+  // ── Render list ──
+  function renderPrototypes(data, timestamp) {
+    prototypes = data || [];
+    document.getElementById('proto-count').textContent =
+      prototypes.length === 1 ? '1 starting point' : `${prototypes.length} starting points`;
+
+    if (timestamp) {
+      const d = new Date(timestamp);
+      document.getElementById('last-updated').textContent =
+        d.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    }
+
+    // Update generate panel counters
+    const pages = groupByPage(prototypes);
+    document.getElementById('prev-protos').textContent = prototypes.length;
+    document.getElementById('prev-pages').textContent = Object.keys(pages).length;
+
+    const container = document.getElementById('list-container');
+    if (prototypes.length === 0) {
+      container.innerHTML = `<div class="empty-state">
+        <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2"/></svg></div>
+        <div class="empty-title">Sin Starting Points detectados</div>
+        <div class="empty-desc">Abre el panel Prototype → selecciona un frame → pulsa "+" junto a "Flow starting point".</div>
+      </div>`;
+      return;
+    }
+
+    const sorted = [...prototypes].sort((a, b) =>
+      sortAZ ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name)
+    );
+    const pageGroups = groupByPage(sorted);
+    const pageNames = Object.keys(pageGroups);
+    let html = '';
+
+    for (const pName of pageNames) {
+      const items = pageGroups[pName];
+      html += `<div class="page-group">`;
+      if (pageNames.length > 1) {
+        html += `<div class="page-label">${esc(pName)} <span style="color:var(--text-dim);font-weight:400">(${items.length})</span></div>`;
+      }
+      items.forEach((p, i) => { html += renderCard(p, i); });
+      html += `</div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  function groupByPage(items) {
+    const g = {};
+    for (const p of items) {
+      if (!g[p.pageName]) g[p.pageName] = [];
+      g[p.pageName].push(p);
+    }
+    return g;
+  }
+
+  function renderCard(p, i) {
+    const ratio = p.width > 0 ? Math.min(p.height / p.width, 2.2) : 1.2;
+    const h = Math.round(34 * ratio);
+    const shortUrl = p.prototypeUrl
+      ? p.prototypeUrl.replace('https://www.figma.com/proto/', 'figma.com/…/').substring(0, 44) + '…'
+      : null;
+    // Show flowName badge only when it differs from the frame name
+    const showFlow = p.flowName && p.flowName !== p.name;
+    return `
+      <div class="proto-card is-starting" onclick="navigateTo('${p.id}')">
+        <div class="proto-thumb">
+          <div class="thumb-inner">
+            <div class="thumb-frame" style="height:${h}px">
+              <div class="thumb-line" style="width:70%"></div>
+              <div class="thumb-line" style="width:50%"></div>
+              <div class="thumb-line" style="width:60%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="proto-body">
+          <div class="proto-name">${esc(p.flowName)}</div>
+          <div class="proto-frame-name">${esc(p.name)}</div>
+          ${shortUrl
+            ? `<div class="proto-url proto-url-link" onclick="openUrl(event,'${esc(p.prototypeUrl)}')" title="${esc(p.prototypeUrl)}">${shortUrl}</div>`
+            : '<div class="proto-url" style="color:var(--text-dim);font-size:8px">Archivo local · guarda en la nube para obtener URL</div>'
+          }
+          <div class="proto-meta">
+            <span class="meta-tag">${p.width}×${p.height}</span>
+            ${p.reactionsCount > 0 ? `<span class="meta-tag">⚡ ${p.reactionsCount}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Tab switching ──
+  function switchTab(tab) {
+    document.getElementById('panel-list').classList.toggle('active', tab === 'list');
+    document.getElementById('panel-gen').classList.toggle('active', tab === 'gen');
+    document.getElementById('tab-list').classList.toggle('active', tab === 'list');
+    document.getElementById('tab-gen').classList.toggle('active', tab === 'gen');
+    // Reset feedback on tab switch
+    if (tab === 'gen') {
+      document.getElementById('success-box').classList.remove('show');
+      document.getElementById('error-box').classList.remove('show');
+    }
+  }
+
+  // ── Layout selection ──
+  function selectLayout(layout) {
+    selectedLayout = layout;
+    document.getElementById('opt-list').classList.toggle('selected', layout === 'list');
+    document.getElementById('opt-grid').classList.toggle('selected', layout === 'grid');
+  }
+
+  // ── Toggle options ──
+  function toggleOption(opt) {
+    if (opt === 'urls') {
+      optUrls = !optUrls;
+      document.getElementById('toggle-urls').classList.toggle('on', optUrls);
+    } else {
+      optPage = !optPage;
+      document.getElementById('toggle-page').classList.toggle('on', optPage);
+      document.getElementById('prev-note').textContent = optPage
+        ? 'El frame se generará en la página "📋 Prototype Index" y se creará si no existe.'
+        : 'El frame se generará en la página actual del proyecto.';
+    }
+  }
+
+  // ── Generate frame ──
+  function generateFrame() {
+    document.getElementById('success-box').classList.remove('show');
+    document.getElementById('error-box').classList.remove('show');
+    parent.postMessage({
+      pluginMessage: {
+        type: 'GENERATE_FRAME',
+        options: { layout: selectedLayout, showUrls: optUrls, dedicatedPage: optPage }
+      }
+    }, '*');
+  }
+
+  function setGenerating(active) {
+    const btn = document.getElementById('gen-btn');
+    if (active) {
+      btn.disabled = true;
+      btn.classList.add('generating');
+      btn.innerHTML = `<div class="spinner"></div> Generando frame…`;
+    } else {
+      btn.disabled = false;
+      btn.classList.remove('generating');
+      btn.innerHTML = `<svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Generar Frame en Figma`;
+    }
+  }
+
+  // ── List controls ──
+  function navigateTo(nodeId) {
+    parent.postMessage({ pluginMessage: { type: 'NAVIGATE_TO', nodeId } }, '*');
+  }
+
+  function openUrl(event, url) {
+    event.stopPropagation();
+    window.open(url, '_blank');
+  }
+
+  function handleRefresh() {
+    const btn = document.getElementById('refresh-btn');
+    btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none';
+    parent.postMessage({ pluginMessage: { type: 'REFRESH' } }, '*');
+    setTimeout(() => { btn.style.opacity = ''; btn.style.pointerEvents = ''; }, 800);
+  }
+
+  function toggleWatcher() {
+    parent.postMessage({ pluginMessage: { type: isWatching ? 'STOP_WATCHER' : 'START_WATCHER' } }, '*');
+  }
+
+  function updateWatcherUI() {
+    const btn = document.getElementById('watcher-btn');
+    const sb = document.getElementById('status-bar');
+    const st = document.getElementById('status-text');
+    if (isWatching) {
+      btn.classList.add('active');
+      btn.innerHTML = `<div class="watcher-dot"></div> Watching…`;
+      sb.classList.add('watching');
+      st.textContent = 'Watcher activo — detectando cambios cada 2s';
+    } else {
+      btn.classList.remove('active');
+      btn.innerHTML = `<div class="watcher-dot"></div> Watcher`;
+      sb.classList.remove('watching');
+      st.textContent = 'Watcher inactivo';
+    }
+  }
+
+  function toggleSort() {
+    sortAZ = !sortAZ;
+    document.getElementById('sort-label').textContent = sortAZ ? 'A–Z' : 'Z–A';
+    renderPrototypes(prototypes, null);
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function esc(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>

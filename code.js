@@ -183,7 +183,7 @@ async function generateIndexFrame(prototypes, options) {
     t.fills = [{ type: "SOLID", color: { r: color.r, g: color.g, b: color.b } }];
     if (maxW) {
       t.textAutoResize = "HEIGHT";
-      t.resize(maxW, 40);
+      t.resize(maxW, 1);
     } else {
       t.textAutoResize = "WIDTH_AND_HEIGHT";
     }
@@ -191,47 +191,59 @@ async function generateIndexFrame(prototypes, options) {
     return t;
   }
 
-  // ── Helper: thumbnail mockup ──
-  function makeThumbnail(proto, x, y, w, h) {
+  // ── Helper: thumbnail ──
+  async function makeThumbnail(proto, x, y, w, h) {
     const group = [];
     // bg
     const bg = makeRect(x, y, w, h, C.surface2, options.layout === "grid" ? 8 : 6);
     group.push(bg);
 
-    // inner proportional frame
-    const aspectRatio = proto.width > 0 ? proto.height / proto.width : 1.5;
-    const clampedRatio = Math.min(Math.max(aspectRatio, 0.5), 2.5);
-    const innerPad = options.layout === "grid" ? 16 : 8;
-    const innerW = w - innerPad * 2;
-    const innerH = Math.min(h - innerPad * 2, innerW * clampedRatio);
-    const innerX = x + innerPad;
-    const innerY = y + (h - innerH) / 2;
+    // Try to get actual thumbnail from the prototype node
+    try {
+      const protoNode = figma.getNodeById(proto.id);
+      if (protoNode && (protoNode.type === "FRAME" || protoNode.type === "COMPONENT")) {
+        // Export the node as an image
+        const imageBytes = await protoNode.exportAsync({
+          format: "PNG",
+          constraint: { type: "SCALE", value: 0.25 } // Lower resolution for performance
+        });
+        
+        // Create image fill
+        const image = figma.createImage(imageBytes);
+        const aspectRatio = proto.width > 0 ? proto.height / proto.width : 1.5;
+        const clampedRatio = Math.min(Math.max(aspectRatio, 0.5), 2.5);
+        const innerPad = options.layout === "grid" ? 16 : 8;
+        const innerW = w - innerPad * 2;
+        const innerH = Math.min(h - innerPad * 2, innerW * clampedRatio);
+        const innerX = x + innerPad;
+        const innerY = y + (h - innerH) / 2;
 
-    const frame = makeRect(innerX, innerY, innerW, innerH, C.surface, 4);
-    group.push(frame);
+        const imageRect = makeRect(innerX, innerY, innerW, innerH, C.surface, 4);
+        imageRect.fills = [{
+          type: "IMAGE",
+          imageHash: image.hash,
+          scaleMode: "FIT"
+        }];
+        imageRect.strokes = [{ type: "SOLID", color: C.border }];
+        imageRect.strokeWeight = 1;
+        group.push(imageRect);
+      }
+    } catch (err) {
+      console.log("Could not generate thumbnail for:", proto.name, err);
+      // Fallback to simple frame representation
+      const aspectRatio = proto.width > 0 ? proto.height / proto.width : 1.5;
+      const clampedRatio = Math.min(Math.max(aspectRatio, 0.5), 2.5);
+      const innerPad = options.layout === "grid" ? 16 : 8;
+      const innerW = w - innerPad * 2;
+      const innerH = Math.min(h - innerPad * 2, innerW * clampedRatio);
+      const innerX = x + innerPad;
+      const innerY = y + (h - innerH) / 2;
 
-    // border on inner frame
-    frame.strokes = [{ type: "SOLID", color: C.border }];
-    frame.strokeWeight = 1;
-
-    // fake content lines
-    const lineY = innerY + (options.layout === "grid" ? 10 : 8);
-    const lineH = options.layout === "grid" ? 4 : 3;
-    const lineGap = options.layout === "grid" ? 7 : 5;
-    const lineX = innerX + (options.layout === "grid" ? 8 : 5);
-    const lineWidths = [0.65, 0.45, 0.55, 0.35, 0.50];
-
-    for (let i = 0; i < Math.min(lineWidths.length, Math.floor((innerH - 16) / (lineH + lineGap))); i++) {
-      const line = makeRect(lineX, lineY + i * (lineH + lineGap), (innerW - 16) * lineWidths[i], lineH, C.border, 2);
-      group.push(line);
+      const frame = makeRect(innerX, innerY, innerW, innerH, C.surface, 4);
+      frame.strokes = [{ type: "SOLID", color: C.border }];
+      frame.strokeWeight = 1;
+      group.push(frame);
     }
-
-    // SP badge — all items are starting points, show flow name
-    const badgePad = 4;
-    const badge = makeRect(x + w - 28 - badgePad, y + badgePad, 28, 14, C.accent, 3, 0.12);
-    group.push(badge);
-    const badgeT = makeText("SP", x + w - 24 - badgePad, y + badgePad + 1, 7, "Bold", C.accent);
-    group.push(badgeT);
 
     return group;
   }
@@ -260,40 +272,69 @@ async function generateIndexFrame(prototypes, options) {
       cardFrame.appendChild(bar);
 
       // Thumbnail top area — coords relative to card (0,0)
-      var thumbNodesGrid = makeThumbnail(proto, 0, 0, CARD_WIDTH, THUMB_H);
+      var thumbNodesGrid = await makeThumbnail(proto, 0, 0, CARD_WIDTH, THUMB_H);
       for (var ti = 0; ti < thumbNodesGrid.length; ti++) cardFrame.appendChild(thumbNodesGrid[ti]);
 
       const infoPad = 12;
       var infoYrel = THUMB_H + 10; // relative to card
 
+      // Create an autolayout frame for text content
+      var textContainer = figma.createFrame();
+      textContainer.name = "Text Content";
+      textContainer.x = infoPad;
+      textContainer.y = infoYrel;
+      textContainer.layoutMode = "VERTICAL";
+      textContainer.resize(CARD_WIDTH - infoPad * 2, 1); // Start with minimal height
+      textContainer.fills = [];
+      textContainer.primaryAxisSizingMode = "AUTO";
+      textContainer.counterAxisSizingMode = "FIXED";
+      textContainer.itemSpacing = 4;
+      textContainer.paddingTop = 0;
+      textContainer.paddingBottom = 0;
+      textContainer.paddingLeft = 0;
+      textContainer.paddingRight = 0;
+      textContainer.clipsContent = false;
+
       // Index number
-      var numT = makeText("#" + cardNum, infoPad, infoYrel, 9, "Medium", C.textDim);
-      cardFrame.appendChild(numT);
+      var numT = makeText("#" + cardNum, 0, 0, 9, "Medium", C.textDim);
+      textContainer.appendChild(numT);
+      numT.layoutSizingHorizontal = "HUG";
+      numT.layoutSizingVertical = "HUG";
 
       // Flow name as primary title
-      var nameT = makeText(proto.flowName, infoPad, infoYrel + 14, 12, "Semi Bold", C.text, CARD_WIDTH - infoPad * 2);
-      cardFrame.appendChild(nameT);
+      var nameT = makeText(proto.flowName, 0, 0, 12, "Semi Bold", C.text, CARD_WIDTH - infoPad * 2);
+      textContainer.appendChild(nameT);
+      nameT.layoutSizingHorizontal = "FIXED";
+      nameT.layoutSizingVertical = "HUG";
 
       // Frame name as subtitle (if different)
-      var flowLabelYrel = infoYrel + 30;
       if (proto.flowName !== proto.name) {
-        var frameSubT = makeText(proto.name, infoPad, infoYrel + 30, 9, "Regular", C.textDim, CARD_WIDTH - infoPad * 2);
-        cardFrame.appendChild(frameSubT);
-        flowLabelYrel = infoYrel + 44;
+        var frameSubT = makeText(proto.name, 0, 0, 9, "Regular", C.textDim, CARD_WIDTH - infoPad * 2);
+        textContainer.appendChild(frameSubT);
+        frameSubT.layoutSizingHorizontal = "FIXED";
+        frameSubT.layoutSizingVertical = "HUG";
       }
 
       // Size tag
-      var sizeT = makeText(proto.width + "×" + proto.height, infoPad, flowLabelYrel + 4, 9, "Regular", C.textDim);
-      cardFrame.appendChild(sizeT);
+      var sizeT = makeText(proto.width + "×" + proto.height, 0, 0, 9, "Regular", C.textDim);
+      textContainer.appendChild(sizeT);
+      sizeT.layoutSizingHorizontal = "HUG";
+      sizeT.layoutSizingVertical = "HUG";
 
       // URL or helpful message
       if (proto.prototypeUrl) {
-        var urlT = makeText(proto.prototypeUrl, infoPad, flowLabelYrel + 18, 7, "Regular", C.accent, CARD_WIDTH - infoPad * 2);
-        cardFrame.appendChild(urlT);
+        var urlT = makeText(proto.prototypeUrl, 0, 0, 7, "Regular", C.accent, CARD_WIDTH - infoPad * 2);
+        textContainer.appendChild(urlT);
+        urlT.layoutSizingHorizontal = "FIXED";
+        urlT.layoutSizingVertical = "HUG";
       } else {
-        var helpT = makeText("Save file to cloud to get shareable URL", infoPad, flowLabelYrel + 18, 7, "Regular", C.textDim, CARD_WIDTH - infoPad * 2);
-        cardFrame.appendChild(helpT);
+        var helpT = makeText("Save file to cloud to get shareable URL", 0, 0, 7, "Regular", C.textDim, CARD_WIDTH - infoPad * 2);
+        textContainer.appendChild(helpT);
+        helpT.layoutSizingHorizontal = "FIXED";
+        helpT.layoutSizingVertical = "HUG";
       }
+
+      cardFrame.appendChild(textContainer);
     } else {
       // ── LIST CARD ──
       cardFrame.resize(CARD_WIDTH, CARD_H);
@@ -307,34 +348,63 @@ async function generateIndexFrame(prototypes, options) {
       cardFrame.appendChild(bar);
 
       // Thumbnail on left — relative coords (0,0)
-      var thumbNodesList = makeThumbnail(proto, 0, 0, THUMB_W, THUMB_H);
+      var thumbNodesList = await makeThumbnail(proto, 0, 0, THUMB_W, THUMB_H);
       for (var ti = 0; ti < thumbNodesList.length; ti++) cardFrame.appendChild(thumbNodesList[ti]);
 
       var textXrel = THUMB_W + 16;
       var centerYrel = CARD_H / 2;
 
+      // Create an autolayout frame for text content
+      var textContainer = figma.createFrame();
+      textContainer.name = "Text Content";
+      textContainer.x = textXrel;
+      textContainer.y = centerYrel - 32;
+      textContainer.layoutMode = "VERTICAL";
+      textContainer.resize(CARD_WIDTH - THUMB_W - 32 - 120, 1); // Start with minimal height
+      textContainer.fills = [];
+      textContainer.primaryAxisSizingMode = "AUTO";
+      textContainer.counterAxisSizingMode = "FIXED";
+      textContainer.itemSpacing = 4;
+      textContainer.paddingTop = 0;
+      textContainer.paddingBottom = 0;
+      textContainer.paddingLeft = 0;
+      textContainer.paddingRight = 0;
+      textContainer.clipsContent = false;
+
       // Index number
-      var numT = makeText("#" + cardNum, textXrel, centerYrel - 32, 9, "Medium", C.textDim);
-      cardFrame.appendChild(numT);
+      var numT = makeText("#" + cardNum, 0, 0, 9, "Medium", C.textDim);
+      textContainer.appendChild(numT);
+      numT.layoutSizingHorizontal = "HUG";
+      numT.layoutSizingVertical = "HUG";
 
       // Flow name as primary title
-      var nameT = makeText(proto.flowName, textXrel, centerYrel - 20, 14, "Semi Bold", C.text, CARD_WIDTH - THUMB_W - 32);
-      cardFrame.appendChild(nameT);
+      var nameT = makeText(proto.flowName, 0, 0, 14, "Semi Bold", C.text, CARD_WIDTH - THUMB_W - 32 - 120);
+      textContainer.appendChild(nameT);
+      nameT.layoutSizingHorizontal = "FIXED";
+      nameT.layoutSizingVertical = "HUG";
 
       // Frame name as subtitle (if different)
       if (proto.flowName !== proto.name) {
-        var frameSubT = makeText(proto.name, textXrel, centerYrel - 4, 9, "Regular", C.textDim, CARD_WIDTH - THUMB_W - 120);
-        cardFrame.appendChild(frameSubT);
+        var frameSubT = makeText(proto.name, 0, 0, 9, "Regular", C.textDim, CARD_WIDTH - THUMB_W - 32 - 120);
+        textContainer.appendChild(frameSubT);
+        frameSubT.layoutSizingHorizontal = "FIXED";
+        frameSubT.layoutSizingVertical = "HUG";
       }
 
-      // URL or helpful message (moved up to replace size)
+      // URL or helpful message
       if (proto.prototypeUrl) {
-        var urlT = makeText(proto.prototypeUrl, textXrel, centerYrel + 10, 7, "Regular", C.accent, CARD_WIDTH - THUMB_W - 32 - 100);
-        cardFrame.appendChild(urlT);
+        var urlT = makeText(proto.prototypeUrl, 0, 0, 7, "Regular", C.accent, CARD_WIDTH - THUMB_W - 32 - 120);
+        textContainer.appendChild(urlT);
+        urlT.layoutSizingHorizontal = "FIXED";
+        urlT.layoutSizingVertical = "HUG";
       } else {
-        var helpT = makeText("Save file to cloud to get shareable URL", textXrel, centerYrel + 10, 7, "Regular", C.textDim, CARD_WIDTH - THUMB_W - 32 - 100);
-        cardFrame.appendChild(helpT);
+        var helpT = makeText("Save file to cloud to get shareable URL", 0, 0, 7, "Regular", C.textDim, CARD_WIDTH - THUMB_W - 32 - 120);
+        textContainer.appendChild(helpT);
+        helpT.layoutSizingHorizontal = "FIXED";
+        helpT.layoutSizingVertical = "HUG";
       }
+
+      cardFrame.appendChild(textContainer);
 
       // Date — positioned from right edge
       var dateT = makeText(dateStr, 0, centerYrel - 4, 9, "Regular", C.textDim);

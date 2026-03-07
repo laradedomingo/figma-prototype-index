@@ -19,6 +19,83 @@ function countChildReactions(node) {
   return count;
 }
 
+/**
+ * Finds the topmost frame on a page (smallest Y coordinate)
+ * @param {PageNode} page - The page to search
+ * @returns {FrameNode|ComponentNode|null} The cover frame or null if none exists
+ */
+function findCoverFrame(page) {
+  // Returns the topmost frame on the page
+  // "Topmost" means the frame with the smallest Y coordinate
+  
+  if (!page.children || page.children.length === 0) {
+    return null;
+  }
+  
+  let coverFrame = null;
+  let minY = Infinity;
+  
+  for (const child of page.children) {
+    if (child.type === "FRAME" || child.type === "COMPONENT") {
+      if (child.y < minY) {
+        minY = child.y;
+        coverFrame = child;
+      }
+    }
+  }
+  
+  return coverFrame;
+}
+
+/**
+ * Calculates the Y position for the frame index based on cover frame position
+ * @param {PageNode} page - The page containing the cover frame
+ * @param {number} indexFrameHeight - The height of the index frame (unused but kept for API compatibility)
+ * @returns {{x: number, y: number}} Position coordinates for the index frame
+ */
+function calculateIndexPosition(page, indexFrameHeight) {
+  const SPACING = 100; // Vertical spacing between cover and index
+  
+  try {
+    const coverFrame = findCoverFrame(page);
+    
+    if (!coverFrame) {
+      // No cover frame exists, position at top
+      return { x: 0, y: 0 };
+    }
+    
+    // Handle invalid cover frame dimensions (negative height)
+    if (coverFrame.height < 0) {
+      console.warn("Cover frame has negative height, falling back to (0, 0) position");
+      return { x: 0, y: 0 };
+    }
+    
+    // Position below cover frame with spacing
+    const yPosition = coverFrame.y + coverFrame.height + SPACING;
+    
+    return { x: 0, y: yPosition };
+  } catch (err) {
+    // Fall back to (0, 0) position on calculation errors
+    console.warn("Error calculating index position, falling back to (0, 0):", err);
+    return { x: 0, y: 0 };
+  }
+}
+
+/**
+ * Removes any existing "Prototype Index" frames from the specified page
+ * @param {PageNode} page - The page to clean up
+ */
+function removeOldIndexFrames(page) {
+  // Remove any existing "Prototype Index" frames from the page
+  // Iterate backwards through children array for safe removal
+  for (let i = page.children.length - 1; i >= 0; i--) {
+    const child = page.children[i];
+    if (child.name === "Prototype Index") {
+      child.remove();
+    }
+  }
+}
+
 // ─────────────────────────────────────────────
 // SCAN ONLY STARTING POINTS ACROSS ALL PAGES
 // The correct Figma API is page.flowStartingPoints:
@@ -135,14 +212,15 @@ async function loadFonts() {
 // ─────────────────────────────────────────────
 
 async function generateIndexFrame(prototypes, options) {
-  await loadFonts();
+  try {
+    await loadFonts();
 
-  // Group by page
-  const pageGroups = {};
-  for (const p of prototypes) {
-    if (!pageGroups[p.pageName]) pageGroups[p.pageName] = [];
-    pageGroups[p.pageName].push(p);
-  }
+    // Group by page
+    const pageGroups = {};
+    for (const p of prototypes) {
+      if (!pageGroups[p.pageName]) pageGroups[p.pageName] = [];
+      pageGroups[p.pageName].push(p);
+    }
 
   const pageNames = Object.keys(pageGroups);
   const totalPrototypes = prototypes.length;
@@ -156,9 +234,9 @@ async function generateIndexFrame(prototypes, options) {
 
   // ── Design constants ──
   const PADDING = 48;
-  const FRAME_WIDTH = 1200;
+  const FRAME_WIDTH = 1600;
   const CARD_WIDTH = options.layout === "grid" ? 340 : FRAME_WIDTH - PADDING * 2;
-  const CARD_H = options.layout === "grid" ? 200 : 80;
+  const CARD_H = options.layout === "grid" ? 340 : 80;
   const THUMB_W = options.layout === "grid" ? CARD_WIDTH : 80;
   const THUMB_H = options.layout === "grid" ? 120 : CARD_H;
   const COLS = options.layout === "grid" ? 3 : 1;
@@ -280,38 +358,52 @@ async function generateIndexFrame(prototypes, options) {
 
     if (options.layout === "grid") {
       // ── GRID CARD ──
-      cardFrame.resize(CARD_WIDTH, CARD_H);
+      // Set up auto-layout for the card to hug content
+      cardFrame.layoutMode = "VERTICAL";
+      cardFrame.resize(CARD_WIDTH, 1); // Start with minimal height
       cardFrame.fills = [{ type: "SOLID", color: C.surface }];
       cardFrame.strokes = [{ type: "SOLID", color: C.border }];
       cardFrame.strokeWeight = 1;
       cardFrame.cornerRadius = 10;
+      cardFrame.primaryAxisSizingMode = "AUTO"; // Hug height
+      cardFrame.counterAxisSizingMode = "FIXED"; // Fixed width
+      cardFrame.itemSpacing = 0;
+      cardFrame.paddingTop = 0;
+      cardFrame.paddingBottom = 0;
+      cardFrame.paddingLeft = 0;
+      cardFrame.paddingRight = 0;
 
-      // Left accent bar
-      var bar = makeRect(0, 10, 3, CARD_H - 20, C.accent, 2);
-      cardFrame.appendChild(bar);
-
-      // Thumbnail top area — coords relative to card (0,0)
+      // Create a container for the thumbnail
+      var thumbContainer = figma.createFrame();
+      thumbContainer.name = "Thumbnail Container";
+      thumbContainer.resize(CARD_WIDTH, THUMB_H);
+      thumbContainer.fills = [];
+      thumbContainer.clipsContent = true;
+      cardFrame.appendChild(thumbContainer);
+      
+      // Thumbnail nodes — coords relative to container (0,0)
       var thumbNodesGrid = await makeThumbnail(proto, 0, 0, CARD_WIDTH, THUMB_H);
-      for (var ti = 0; ti < thumbNodesGrid.length; ti++) cardFrame.appendChild(thumbNodesGrid[ti]);
+      for (var ti = 0; ti < thumbNodesGrid.length; ti++) thumbContainer.appendChild(thumbNodesGrid[ti]);
+      
+      // Set layout properties after appending
+      thumbContainer.layoutSizingHorizontal = "FILL";
+      thumbContainer.layoutSizingVertical = "FIXED";
 
       const infoPad = 12;
-      var infoYrel = THUMB_H + 10; // relative to card
 
       // Create an autolayout frame for text content
       var textContainer = figma.createFrame();
       textContainer.name = "Text Content";
-      textContainer.x = infoPad;
-      textContainer.y = infoYrel;
       textContainer.layoutMode = "VERTICAL";
-      textContainer.resize(CARD_WIDTH - infoPad * 2, 1); // Start with minimal height
+      textContainer.resize(CARD_WIDTH, 1); // Match card width
       textContainer.fills = [];
       textContainer.primaryAxisSizingMode = "AUTO";
       textContainer.counterAxisSizingMode = "FIXED";
       textContainer.itemSpacing = 4;
-      textContainer.paddingTop = 0;
-      textContainer.paddingBottom = 0;
-      textContainer.paddingLeft = 0;
-      textContainer.paddingRight = 0;
+      textContainer.paddingTop = 10;
+      textContainer.paddingBottom = 12;
+      textContainer.paddingLeft = infoPad;
+      textContainer.paddingRight = infoPad;
       textContainer.clipsContent = false;
 
       // Index number
@@ -334,12 +426,6 @@ async function generateIndexFrame(prototypes, options) {
         frameSubT.layoutSizingVertical = "HUG";
       }
 
-      // Size tag
-      var sizeT = makeText(proto.width + "×" + proto.height, 0, 0, 9, "Regular", C.textDim);
-      textContainer.appendChild(sizeT);
-      sizeT.layoutSizingHorizontal = "HUG";
-      sizeT.layoutSizingVertical = "HUG";
-
       // URL or helpful message
       if (proto.prototypeUrl) {
         var urlT = makeText(proto.prototypeUrl, 0, 0, 7, "Regular", C.accent, CARD_WIDTH - infoPad * 2);
@@ -354,6 +440,9 @@ async function generateIndexFrame(prototypes, options) {
       }
 
       cardFrame.appendChild(textContainer);
+      // Set layout sizing after appending to parent
+      textContainer.layoutSizingHorizontal = "FILL";
+      textContainer.layoutSizingVertical = "HUG";
     } else {
       // ── LIST CARD ──
       cardFrame.resize(CARD_WIDTH, CARD_H);
@@ -489,20 +578,20 @@ async function generateIndexFrame(prototypes, options) {
   }
 
   // ─────────────────────────
-  // FIND OR CREATE INDEX PAGE
+  // USE FIRST PAGE FOR INDEX
   // ─────────────────────────
-  let indexPage = figma.root.children.find(p => p.name === "📋 Prototype Index");
-  if (!indexPage) {
-    indexPage = figma.createPage();
-    indexPage.name = "📋 Prototype Index";
+  // Check if first page exists
+  if (!figma.root.children || figma.root.children.length === 0 || !figma.root.children[0]) {
+    const errorMsg = "Error: First page is undefined. Cannot generate frame index.";
+    console.error(errorMsg);
+    figma.ui.postMessage({ type: "FRAME_ERROR", error: errorMsg });
+    throw new Error(errorMsg);
   }
-  figma.currentPage = indexPage;
-
-  // Remove old index frames
-  for (var ci = 0; ci < indexPage.children.length; ci++) {
-    var existingNode = indexPage.children[ci];
-    if (existingNode.name === "Prototype Index") { existingNode.remove(); ci--; }
-  }
+  
+  const firstPage = figma.root.children[0];
+  
+  // Remove old index frames from first page
+  removeOldIndexFrames(firstPage);
 
   // ─────────────────────────
   // CREATE MAIN FRAME
@@ -511,8 +600,12 @@ async function generateIndexFrame(prototypes, options) {
   mainFrame.name = "Prototype Index";
   mainFrame.resize(FRAME_WIDTH, Math.max(totalH, 600));
   mainFrame.fills = [{ type: "SOLID", color: C.bg }];
-  mainFrame.x = 0;
-  mainFrame.y = 0;
+  
+  // Calculate position based on cover frame
+  const position = calculateIndexPosition(firstPage, mainFrame.height);
+  mainFrame.x = position.x;
+  mainFrame.y = position.y;
+  
   mainFrame.clipsContent = false;
 
   const allNodes = [];
@@ -639,22 +732,51 @@ async function generateIndexFrame(prototypes, options) {
     mainFrame.appendChild(allNodes[ni]);
   }
 
-  // Add mainFrame to the index page
-  indexPage.appendChild(mainFrame);
+  // Add mainFrame to the first page
+  firstPage.appendChild(mainFrame);
 
-  // IMPORTANT: Switch to the index page BEFORE selecting nodes on it
-  figma.currentPage = indexPage;
+  // IMPORTANT: Switch to the first page BEFORE selecting nodes on it
+  figma.currentPage = firstPage;
   
   // Now we can safely scroll and select the main frame
   figma.viewport.scrollAndZoomIntoView([mainFrame]);
-  indexPage.selection = [mainFrame];
+  firstPage.selection = [mainFrame];
 
 
   return {
     frameId: mainFrame.id,
-    pageName: indexPage.name,
+    pageName: firstPage.name,
     totalCards: totalPrototypes,
   };
+  } catch (err) {
+    // Handle frame generation failures
+    const errorMsg = err.message || String(err);
+    console.error("Frame generation failed:", errorMsg);
+    
+    // Clean up partial frames on error
+    try {
+      const firstPage = figma.root.children[0];
+      if (firstPage) {
+        // Remove any partially created "Prototype Index" frames
+        for (let i = firstPage.children.length - 1; i >= 0; i--) {
+          const child = firstPage.children[i];
+          if (child.name === "Prototype Index") {
+            child.remove();
+          }
+        }
+      }
+    } catch (cleanupErr) {
+      console.error("Error during cleanup:", cleanupErr);
+    }
+    
+    // Display error message to user
+    figma.ui.postMessage({ 
+      type: "FRAME_ERROR", 
+      error: "Failed to generate frame index: " + errorMsg 
+    });
+    
+    throw err;
+  }
 }
 
 // ─────────────────────────────────────────────

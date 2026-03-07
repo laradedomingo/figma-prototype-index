@@ -564,6 +564,7 @@
 <script>
   // ── State ──
   let prototypes = [];
+  let thumbnails = {};
   let isWatching = false;
   let sortAZ = true;
   let selectedLayout = 'list';
@@ -578,9 +579,15 @@
     switch (msg.type) {
       case 'INITIAL_DATA':
         document.getElementById('file-name').textContent = msg.fileName || 'Archivo sin nombre';
+        if (msg.thumbnails) {
+          thumbnails = msg.thumbnails;
+        }
         renderPrototypes(msg.prototypes, msg.timestamp);
         break;
       case 'PROTOTYPES_DATA':
+        if (msg.thumbnails) {
+          thumbnails = msg.thumbnails;
+        }
         renderPrototypes(msg.prototypes, msg.timestamp);
         break;
       case 'PROTOTYPES_UPDATED':
@@ -673,15 +680,26 @@
       : null;
     // Show flowName badge only when it differs from the frame name
     const showFlow = p.flowName && p.flowName !== p.name;
+    
+    // Generate thumbnail HTML
+    let thumbHtml = '';
+    if (thumbnails[p.id]) {
+      const bytes = thumbnails[p.id];
+      const base64 = btoa(String.fromCharCode.apply(null, bytes));
+      thumbHtml = `<img src="data:image/png;base64,${base64}" style="width:100%;height:${h}px;object-fit:cover;border-radius:2px;border:1px solid var(--border-light)">`;
+    } else {
+      thumbHtml = `<div class="thumb-frame" style="height:${h}px">
+        <div class="thumb-line" style="width:70%"></div>
+        <div class="thumb-line" style="width:50%"></div>
+        <div class="thumb-line" style="width:60%"></div>
+      </div>`;
+    }
+    
     return `
       <div class="proto-card is-starting" onclick="navigateTo('${p.id}')">
         <div class="proto-thumb">
           <div class="thumb-inner">
-            <div class="thumb-frame" style="height:${h}px">
-              <div class="thumb-line" style="width:70%"></div>
-              <div class="thumb-line" style="width:50%"></div>
-              <div class="thumb-line" style="width:60%"></div>
-            </div>
+            ${thumbHtml}
           </div>
         </div>
         <div class="proto-body">

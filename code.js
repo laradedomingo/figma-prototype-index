@@ -25,6 +25,25 @@ function countChildReactions(node) {
 // an array of { name, nodeId } stored at the PAGE level.
 // ─────────────────────────────────────────────
 
+async function generateThumbnailsForPrototypes(prototypes) {
+  const thumbnails = {};
+  for (const proto of prototypes) {
+    try {
+      const node = figma.getNodeById(proto.id);
+      if (node && (node.type === "FRAME" || node.type === "COMPONENT")) {
+        const imageBytes = await node.exportAsync({
+          format: "PNG",
+          constraint: { type: "SCALE", value: 0.15 }
+        });
+        thumbnails[proto.id] = imageBytes;
+      }
+    } catch (err) {
+      console.log("Could not generate thumbnail for:", proto.name, err);
+    }
+  }
+  return thumbnails;
+}
+
 function getAllPrototypes() {
   var allPrototypes = [];
 
@@ -677,12 +696,16 @@ figma.showUI(__html__, { width: 440, height: 640, title: "Prototype Index" });
 const initialPrototypes = getAllPrototypes();
 lastSnapshot = createSnapshot(initialPrototypes);
 
-figma.ui.postMessage({
-  type: "INITIAL_DATA",
-  prototypes: initialPrototypes,
-  fileKey: figma.fileKey || null,
-  fileName: figma.root.name,
-  timestamp: Date.now(),
+// Generate and send thumbnails
+generateThumbnailsForPrototypes(initialPrototypes).then((thumbnails) => {
+  figma.ui.postMessage({
+    type: "INITIAL_DATA",
+    prototypes: initialPrototypes,
+    thumbnails: thumbnails,
+    fileKey: figma.fileKey || null,
+    fileName: figma.root.name,
+    timestamp: Date.now(),
+  });
 });
 
 // ─────────────────────────────────────────────
@@ -695,7 +718,9 @@ figma.ui.onmessage = async (msg) => {
     case "REFRESH": {
       const prototypes = getAllPrototypes();
       lastSnapshot = createSnapshot(prototypes);
-      figma.ui.postMessage({ type: "PROTOTYPES_DATA", prototypes, timestamp: Date.now() });
+      generateThumbnailsForPrototypes(prototypes).then((thumbnails) => {
+        figma.ui.postMessage({ type: "PROTOTYPES_DATA", prototypes, thumbnails, timestamp: Date.now() });
+      });
       break;
     }
 

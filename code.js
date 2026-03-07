@@ -578,20 +578,30 @@ async function generateIndexFrame(prototypes, options) {
   }
 
   // ─────────────────────────
-  // USE FIRST PAGE FOR INDEX
+  // CONDITIONAL PAGE SELECTION
   // ─────────────────────────
-  // Check if first page exists
-  if (!figma.root.children || figma.root.children.length === 0 || !figma.root.children[0]) {
-    const errorMsg = "Error: First page is undefined. Cannot generate frame index.";
-    console.error(errorMsg);
-    figma.ui.postMessage({ type: "FRAME_ERROR", error: errorMsg });
-    throw new Error(errorMsg);
+  // Default dedicatedPage to false for backward compatibility
+  const dedicatedPage = options.dedicatedPage !== undefined ? options.dedicatedPage : false;
+  
+  let targetPage;
+  
+  if (dedicatedPage) {
+    // Dedicated page mode: create or find the dedicated page
+    targetPage = findOrCreateIndexPage();
+  } else {
+    // First page mode: use the first page in the document
+    // Check if first page exists
+    if (!figma.root.children || figma.root.children.length === 0 || !figma.root.children[0]) {
+      const errorMsg = "Error: First page is undefined. Cannot generate frame index.";
+      console.error(errorMsg);
+      figma.ui.postMessage({ type: "FRAME_ERROR", error: errorMsg });
+      throw new Error(errorMsg);
+    }
+    targetPage = figma.root.children[0];
+    
+    // Remove old index frames from first page
+    removeOldIndexFrames(targetPage);
   }
-  
-  const firstPage = figma.root.children[0];
-  
-  // Remove old index frames from first page
-  removeOldIndexFrames(firstPage);
 
   // ─────────────────────────
   // CREATE MAIN FRAME
@@ -601,10 +611,19 @@ async function generateIndexFrame(prototypes, options) {
   mainFrame.resize(FRAME_WIDTH, Math.max(totalH, 600));
   mainFrame.fills = [{ type: "SOLID", color: C.bg }];
   
-  // Calculate position based on cover frame
-  const position = calculateIndexPosition(firstPage, mainFrame.height);
-  mainFrame.x = position.x;
-  mainFrame.y = position.y;
+  // ─────────────────────────
+  // CONDITIONAL POSITIONING
+  // ─────────────────────────
+  if (dedicatedPage) {
+    // Dedicated page mode: position at origin
+    mainFrame.x = 0;
+    mainFrame.y = 0;
+  } else {
+    // First page mode: position below cover frame
+    const position = calculateIndexPosition(targetPage, mainFrame.height);
+    mainFrame.x = position.x;
+    mainFrame.y = position.y;
+  }
   
   mainFrame.clipsContent = false;
 
@@ -732,20 +751,20 @@ async function generateIndexFrame(prototypes, options) {
     mainFrame.appendChild(allNodes[ni]);
   }
 
-  // Add mainFrame to the first page
-  firstPage.appendChild(mainFrame);
+  // Add mainFrame to the target page
+  targetPage.appendChild(mainFrame);
 
-  // IMPORTANT: Switch to the first page BEFORE selecting nodes on it
-  figma.currentPage = firstPage;
+  // IMPORTANT: Switch to the target page BEFORE selecting nodes on it
+  figma.currentPage = targetPage;
   
   // Now we can safely scroll and select the main frame
   figma.viewport.scrollAndZoomIntoView([mainFrame]);
-  firstPage.selection = [mainFrame];
+  targetPage.selection = [mainFrame];
 
 
   return {
     frameId: mainFrame.id,
-    pageName: firstPage.name,
+    pageName: targetPage.name,
     totalCards: totalPrototypes,
   };
   } catch (err) {
@@ -755,11 +774,28 @@ async function generateIndexFrame(prototypes, options) {
     
     // Clean up partial frames on error
     try {
-      const firstPage = figma.root.children[0];
-      if (firstPage) {
+      // Determine which page to clean up based on dedicatedPage option
+      const dedicatedPage = options.dedicatedPage !== undefined ? options.dedicatedPage : false;
+      let cleanupPage;
+      
+      if (dedicatedPage) {
+        // Try to find the dedicated page for cleanup
+        const INDEX_PAGE_NAME = "📋 Prototype Index";
+        for (const page of figma.root.children) {
+          if (page.name === INDEX_PAGE_NAME) {
+            cleanupPage = page;
+            break;
+          }
+        }
+      } else {
+        // Use first page for cleanup
+        cleanupPage = figma.root.children[0];
+      }
+      
+      if (cleanupPage) {
         // Remove any partially created "Prototype Index" frames
-        for (let i = firstPage.children.length - 1; i >= 0; i--) {
-          const child = firstPage.children[i];
+        for (let i = cleanupPage.children.length - 1; i >= 0; i--) {
+          const child = cleanupPage.children[i];
           if (child.name === "Prototype Index") {
             child.remove();
           }
@@ -778,6 +814,27 @@ async function generateIndexFrame(prototypes, options) {
     throw err;
   }
 }
+// ─────────────────────────────────────────────
+// DEDICATED PAGE MANAGEMENT
+// ─────────────────────────────────────────────
+
+function findOrCreateIndexPage() {
+  const INDEX_PAGE_NAME = "📋 Prototype Index";
+
+  // Search for existing index page
+  for (const page of figma.root.children) {
+    if (page.name === INDEX_PAGE_NAME) {
+      return page;
+    }
+  }
+
+  // Create new index page
+  const indexPage = figma.createPage();
+  indexPage.name = INDEX_PAGE_NAME;
+
+  return indexPage;
+}
+
 
 // ─────────────────────────────────────────────
 // WATCHER
@@ -814,6 +871,27 @@ function stopWatcher() {
 // ─────────────────────────────────────────────
 
 figma.showUI(__html__, { width: 440, height: 640, title: "Prototype Index" });
+
+// Load settings on startup
+async function loadSettings() {
+  try {
+    const dedicatedPage = await figma.clientStorage.getAsync('dedicatedPage');
+    const settings = {
+      dedicatedPage: dedicatedPage !== undefined ? dedicatedPage : false
+    };
+    figma.ui.postMessage({ type: "SETTINGS_LOADED", settings });
+  } catch (err) {
+    console.error("Failed to load settings:", err);
+    // Send default settings on error
+    figma.ui.postMessage({ 
+      type: "SETTINGS_LOADED", 
+      settings: { dedicatedPage: false } 
+    });
+  }
+}
+
+// Initialize settings
+loadSettings();
 
 const initialPrototypes = getAllPrototypes();
 lastSnapshot = createSnapshot(initialPrototypes);
@@ -874,6 +952,35 @@ figma.ui.onmessage = async (msg) => {
         figma.currentPage = node.parent;
         figma.viewport.scrollAndZoomIntoView([node]);
         figma.currentPage.selection = [node];
+      }
+      break;
+    }
+
+    case "SAVE_SETTING": {
+      try {
+        await figma.clientStorage.setAsync(msg.key, msg.value);
+        figma.ui.postMessage({ type: "SETTING_SAVED", key: msg.key });
+      } catch (err) {
+        console.error("Failed to save setting:", err);
+        figma.ui.postMessage({ type: "SETTING_ERROR", error: "Could not save setting" });
+      }
+      break;
+    }
+
+    case "LOAD_SETTINGS": {
+      try {
+        const dedicatedPage = await figma.clientStorage.getAsync('dedicatedPage');
+        const settings = {
+          dedicatedPage: dedicatedPage !== undefined ? dedicatedPage : false
+        };
+        figma.ui.postMessage({ type: "SETTINGS_LOADED", settings });
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+        // Send default settings on error
+        figma.ui.postMessage({ 
+          type: "SETTINGS_LOADED", 
+          settings: { dedicatedPage: false } 
+        });
       }
       break;
     }

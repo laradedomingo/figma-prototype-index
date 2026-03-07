@@ -510,7 +510,7 @@
           <div class="toggle-name">Crear página dedicada</div>
           <div class="toggle-desc">Genera el frame en "📋 Prototype Index"</div>
         </div>
-        <button class="toggle on" id="toggle-page" onclick="toggleOption('page')"></button>
+        <button class="toggle" id="toggle-page" onclick="toggleOption('dedicatedPage')"></button>
       </div>
     </div>
 
@@ -531,7 +531,7 @@
           <div class="preview-stat-label">px ancho</div>
         </div>
       </div>
-      <div class="preview-note" id="prev-note">El frame se generará en la página "📋 Prototype Index" y se creará si no existe.</div>
+      <div class="preview-note" id="prev-note">El frame se generará en la primera página del proyecto.</div>
     </div>
 
     <!-- Success -->
@@ -569,7 +569,7 @@
   let sortAZ = true;
   let selectedLayout = 'list';
   let optUrls = true;
-  let optPage = true;
+  let optPage = false;
   let toastTimer = null;
 
   // ── Message handler ──
@@ -604,7 +604,7 @@
         setGenerating(false);
         document.getElementById('success-box').classList.add('show');
         document.getElementById('success-desc').textContent =
-          `${msg.totalCards} prototipos generados en la página "${msg.pageName}". Usa el panel "Índice" para navegar a los prototipos.`;
+          `El frame se ha creado en la página "${msg.pageName}".`;
         document.getElementById('error-box').classList.remove('show');
         showToast('Frame generado ✓');
         break;
@@ -613,6 +613,13 @@
         document.getElementById('error-box').classList.add('show');
         document.getElementById('error-box').textContent = 'Error: ' + msg.error;
         document.getElementById('success-box').classList.remove('show');
+        break;
+      case 'SETTINGS_LOADED':
+        if (msg.settings && msg.settings.dedicatedPage !== undefined) {
+          optPage = msg.settings.dedicatedPage;
+          document.getElementById('toggle-page').classList.toggle('on', optPage);
+          updatePreviewText();
+        }
         break;
     }
   };
@@ -742,13 +749,26 @@
     if (opt === 'urls') {
       optUrls = !optUrls;
       document.getElementById('toggle-urls').classList.toggle('on', optUrls);
-    } else {
+    } else if (opt === 'dedicatedPage') {
       optPage = !optPage;
       document.getElementById('toggle-page').classList.toggle('on', optPage);
-      document.getElementById('prev-note').textContent = optPage
-        ? 'El frame se generará en la página "📋 Prototype Index" y se creará si no existe.'
-        : 'El frame se generará en la página actual del proyecto.';
+      updatePreviewText();
+      // Save setting to storage
+      parent.postMessage({
+        pluginMessage: {
+          type: 'SAVE_SETTING',
+          key: 'dedicatedPage',
+          value: optPage
+        }
+      }, '*');
     }
+  }
+
+  // ── Update preview text ──
+  function updatePreviewText() {
+    document.getElementById('prev-note').textContent = optPage
+      ? 'El frame se generará en la página "📋 Prototype Index" y se creará si no existe.'
+      : 'El frame se generará en la primera página del proyecto.';
   }
 
   // ── Generate frame ──

@@ -1,54 +1,67 @@
-# Prototype Index — Plugin de Figma
+# Figma Prototype Index Plugin
 
-Genera automáticamente un índice de todos los prototipos (starting points y frames con interacciones) del proyecto Figma.
+A Figma plugin that generates a visual index of all prototype starting points in your file, making it easy to navigate and document your prototypes.
 
-## Características
+## Features
 
-- **Índice completo**: Lista todos los frames con interacciones de prototipo y starting points
-- **Modo Watcher**: Detecta cambios en tiempo real cada 2 segundos y actualiza la lista automáticamente
-- **Botón Regenerar**: Fuerza una actualización manual del índice
-- **URL de prototipo**: Muestra y permite copiar la URL directa de cada prototipo en Figma
-- **Thumbnail visual**: Vista previa del tamaño/proporción del frame
-- **Metadata**: Muestra dimensiones, número de interacciones y si es Starting Point oficial
-- **Multi-página**: Agrupa los prototipos por página del proyecto
-- **Navegación**: Click en cualquier card para ir al frame en el canvas
-- **Ordenación A–Z / Z–A**
+- 📋 Automatically scans all pages for prototype starting points
+- 🎨 Generates a beautiful index frame with cards for each prototype
+- 📱 Two layout options: List and Grid
+- 🔗 Displays prototype URLs (when file is saved to cloud)
+- 👁️ Real-time watcher to detect prototype changes
+- 🎯 Click-to-navigate from the UI panel
 
-## Instalación
+## Installation
 
-1. Abre Figma Desktop
-2. Ve a **Plugins → Development → Import plugin from manifest…**
-3. Selecciona el archivo `manifest.json` de esta carpeta
-4. El plugin aparecerá en **Plugins → Development → Prototype Index**
+### Development Mode
 
-## Uso
+1. Clone this repository
+2. Open Figma Desktop App
+3. Go to Plugins → Development → Import plugin from manifest
+4. Select the `manifest.json` file from this repository
 
-1. Abre el plugin desde el menú de Plugins
-2. Verás la lista de todos los prototipos del proyecto actual
-3. **Watcher**: Activa el modo watcher para que la lista se actualice sola cuando hagas cambios
-4. **Regenerar**: Pulsa para forzar una actualización manual
-5. **Click en una card**: Navega directamente al frame en el canvas
-6. **⎘ Copiar**: Copia la URL del prototipo al portapapeles
+## Usage
 
-## Cómo detecta prototipos
+1. Open the plugin from Plugins → Prototype Index
+2. The plugin will automatically scan your file for prototype starting points
+3. Use the "Índice" tab to see the list of prototypes and navigate to them
+4. Use the "Generar Frame" tab to create a visual index frame in your file
 
-El plugin detecta frames como prototipos si:
-- Están marcados como **Starting Point** en Figma (`prototypeStartingPoint`)
-- Tienen **interacciones directas** (reactions) en el frame
-- Tienen **interacciones en hijos** del frame
+### Generate Frame Options
 
-## Archivos
+- **Layout**: Choose between List or Grid layout
+- **Show URLs**: Display prototype URLs on cards (requires file to be saved to cloud)
+- **Dedicated Page**: Create the index on a separate "📋 Prototype Index" page
 
+## Requirements
+
+- Figma Desktop App or Figma in browser
+- File must be saved to Figma cloud for prototype URLs to work
+
+## Development
+
+### Setup
+
+```bash
+npm install
 ```
-figma-prototype-index/
-├── manifest.json   — Configuración del plugin
-├── code.js         — Lógica principal (sandbox de Figma)
-├── ui.html         — Interfaz de usuario
-└── README.md       — Esta documentación
+
+### Testing
+
+```bash
+npm test
 ```
 
-## Notas
+## Technical Details
 
-- La **fecha de última modificación** no está disponible a nivel de nodo individual en la API de Figma (sólo existe a nivel de archivo via REST API). El plugin muestra la hora de la última vez que fue escaneado.
-- La URL del prototipo requiere que el archivo esté guardado en la nube (necesita `figma.fileKey`).
-- El Watcher comprueba cambios cada **2 segundos** comparando snapshots de nombre, página y número de interacciones.
+- Uses Figma's `flowStartingPoints` API to detect prototype starting points
+- Generates frames with proper styling and layout
+- Includes property-based tests for correctness validation
+
+## License
+
+MIT
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.

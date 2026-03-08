@@ -1,5 +1,7 @@
 # Figma Prototype Index Plugin
 
+![Thumbnail](Thumbnail.png)
+
 A Figma plugin that generates a visual index of all prototype starting points in your file, making it easy to navigate and document your prototypes.
 
 ## Features

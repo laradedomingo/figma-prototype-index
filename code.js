@@ -107,7 +107,7 @@ async function generateThumbnailsForPrototypes(prototypes) {
     }
     return thumbnails;
 }
-function getAllPrototypes() {
+async function getAllPrototypes() {
     var allPrototypes = [];
     // Debug: Check if fileKey is available
     console.log("=== URL Debug Info ===");
@@ -122,7 +122,7 @@ function getAllPrototypes() {
             continue;
         for (var fi = 0; fi < flows.length; fi++) {
             var flow = flows[fi];
-            var node = figma.getNodeById(flow.nodeId);
+            var node = await figma.getNodeByIdAsync(flow.nodeId);
             if (!node)
                 continue;
             var flowName = flow.name || node.name;
@@ -757,11 +757,11 @@ function startWatcher() {
     if (watcherInterval)
         return;
     isWatching = true;
-    const checkForChanges = () => {
+    const checkForChanges = async () => {
         if (!isWatching)
             return;
         try {
-            const prototypes = getAllPrototypes();
+            const prototypes = await getAllPrototypes();
             const snapshot = createSnapshot(prototypes);
             if (snapshot !== lastSnapshot && lastSnapshot !== "") {
                 lastSnapshot = snapshot;
@@ -853,27 +853,29 @@ async function loadSettings() {
     }
 }
 // Initialize settings
-loadSettings();
-const initialPrototypes = getAllPrototypes();
-lastSnapshot = createSnapshot(initialPrototypes);
-// Generate and send thumbnails
-generateThumbnailsForPrototypes(initialPrototypes).then((thumbnails) => {
-    figma.ui.postMessage({
-        type: "INITIAL_DATA",
-        prototypes: initialPrototypes,
-        thumbnails: thumbnails,
-        fileKey: figma.fileKey || null,
-        fileName: figma.root.name,
-        timestamp: Date.now(),
+(async () => {
+    await loadSettings();
+    const initialPrototypes = await getAllPrototypes();
+    lastSnapshot = createSnapshot(initialPrototypes);
+    // Generate and send thumbnails
+    generateThumbnailsForPrototypes(initialPrototypes).then((thumbnails) => {
+        figma.ui.postMessage({
+            type: "INITIAL_DATA",
+            prototypes: initialPrototypes,
+            thumbnails: thumbnails,
+            fileKey: figma.fileKey || null,
+            fileName: figma.root.name,
+            timestamp: Date.now(),
+        });
     });
-});
+})();
 // ─────────────────────────────────────────────
 // MESSAGE HANDLER
 // ─────────────────────────────────────────────
 figma.ui.onmessage = async (msg) => {
     switch (msg.type) {
         case "REFRESH": {
-            const prototypes = getAllPrototypes();
+            const prototypes = await getAllPrototypes();
             lastSnapshot = createSnapshot(prototypes);
             generateThumbnailsForPrototypes(prototypes).then((thumbnails) => {
                 figma.ui.postMessage({ type: "PROTOTYPES_DATA", prototypes, thumbnails, timestamp: Date.now() });
@@ -883,7 +885,7 @@ figma.ui.onmessage = async (msg) => {
         case "GENERATE_FRAME": {
             figma.ui.postMessage({ type: "GENERATING" });
             try {
-                const prototypes = getAllPrototypes();
+                const prototypes = await getAllPrototypes();
                 const result = await generateIndexFrame(prototypes, msg.options || { layout: "list", showUrls: true });
                 figma.ui.postMessage(Object.assign({ type: "FRAME_GENERATED" }, result));
             }

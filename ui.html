@@ -525,12 +525,13 @@
       </div>
       <div class="toggle-row" style="margin-top:6px">
         <div class="toggle-info">
-          <div class="toggle-name" data-i18n="generate.options.language">Idioma / Language</div>
-          <div class="toggle-desc" data-i18n="generate.options.languageDesc">Español / English</div>
+          <div class="toggle-name" data-i18n="generate.options.language">Idioma</div>
+          <div class="toggle-desc" data-i18n="generate.options.languageDesc">Español / English / Euskara</div>
         </div>
         <select class="language-select" id="language-select" onchange="changeLanguage()">
           <option value="es">Español</option>
           <option value="en">English</option>
+          <option value="eu">Euskara</option>
         </select>
       </div>
     </div>
@@ -626,8 +627,8 @@
       'generate.options.showUrlsDesc': 'Incluye el enlace directo al prototipo',
       'generate.options.dedicatedPage': 'Crear página dedicada',
       'generate.options.dedicatedPageDesc': 'Genera el frame en "📋 Prototype Index"',
-      'generate.options.language': 'Idioma / Language',
-      'generate.options.languageDesc': 'Español / English',
+      'generate.options.language': 'Idioma',
+      'generate.options.languageDesc': 'Español / English / Euskara',
       'generate.preview.title': 'Resumen del frame',
       'generate.preview.prototypes': 'prototipos',
       'generate.preview.pages': 'páginas',
@@ -687,8 +688,8 @@
       'generate.options.showUrlsDesc': 'Include direct link to prototype',
       'generate.options.dedicatedPage': 'Create dedicated page',
       'generate.options.dedicatedPageDesc': 'Generate frame in "📋 Prototype Index"',
-      'generate.options.language': 'Idioma / Language',
-      'generate.options.languageDesc': 'Español / English',
+      'generate.options.language': 'Language',
+      'generate.options.languageDesc': 'Español / English / Euskara',
       'generate.preview.title': 'Frame summary',
       'generate.preview.prototypes': 'prototypes',
       'generate.preview.pages': 'pages',
@@ -708,6 +709,67 @@
       'footer.version': 'Prototype Index',
       'footer.generated': 'Generated on',
       'footer.at': 'at',
+    },
+    eu: {
+      // Header
+      'header.title': 'Prototype Index',
+      'header.loading': 'Kargatzen…',
+      'header.startingPoints': 'hasiera puntu',
+      'header.startingPoint': 'hasiera puntu',
+      
+      // Tabs
+      'tabs.index': 'Aurkibidea',
+      'tabs.generate': 'Markoa Sortu',
+      
+      // Toolbar
+      'toolbar.regenerate': 'Birsortu',
+      'toolbar.watcher': 'Watcher',
+      'toolbar.watching': 'Watching…',
+      'toolbar.sortAZ': 'A–Z',
+      'toolbar.sortZA': 'Z–A',
+      
+      // Status
+      'status.ready': 'Prest',
+      'status.watcherActive': 'Watcher aktibo — aldaketak detektatzen 2s-ro',
+      'status.watcherInactive': 'Watcher inaktibo',
+      'status.scanning': 'Proiektua eskaneatzen…',
+      
+      // List view
+      'list.empty.title': 'Ez da hasiera punturik detektatu',
+      'list.empty.description': 'Ireki Prototype panela → hautatu marko bat → sakatu "+" "Flow starting point"-en ondoan.',
+      'list.urlCopied': 'URLa kopiatuta',
+      'list.localFile': 'Fitxategi lokala · gorde hodeian URLa lortzeko',
+      
+      // Generate panel
+      'generate.layout.title': 'Diseinua',
+      'generate.layout.list': 'Zerrenda',
+      'generate.layout.grid': 'Sareta',
+      'generate.options.title': 'Aukerak',
+      'generate.options.showUrls': 'Erakutsi URLak',
+      'generate.options.showUrlsDesc': 'Prototipoarekiko esteka zuzena sartu',
+      'generate.options.dedicatedPage': 'Sortu orrialde dedikatua',
+      'generate.options.dedicatedPageDesc': 'Sortu markoa "📋 Prototype Index"-en',
+      'generate.options.language': 'Hizkuntza',
+      'generate.options.languageDesc': 'Español / English / Euskara',
+      'generate.preview.title': 'Markoaren laburpena',
+      'generate.preview.prototypes': 'prototipo',
+      'generate.preview.pages': 'orrialde',
+      'generate.preview.width': 'px zabalera',
+      'generate.preview.noteFirstPage': 'Markoa proiektuaren lehen orrialdean sortuko da.',
+      'generate.preview.noteDedicatedPage': 'Markoa "📋 Prototype Index" orrialdean sortuko da eta sortuko da ez bada existitzen.',
+      'generate.button': 'Sortu Markoa Figman',
+      'generate.button.generating': 'Markoa sortzen…',
+      'generate.success.title': 'Markoa behar bezala sortu da',
+      'generate.success.description': 'Markoa orrialdean sortu da',
+      
+      // Toast messages
+      'toast.listUpdated': 'Zerrenda eguneratuta',
+      'toast.frameGenerated': 'Markoa sortuta ✓',
+      
+      // Footer
+      'footer.version': 'Prototype Index',
+      'footer.generated': 'Sortua',
+      'footer.at': 'orduan',
     }
   };
 
@@ -756,13 +818,18 @@
   /**
    * Format dates according to locale
    * @param {Date} date - Date to format
-   * @param {string} lang - Language code ('es' or 'en')
+   * @param {string} lang - Language code ('es', 'en', or 'eu')
    * @param {Intl.DateTimeFormatOptions} options - Formatting options
    * @returns {string} Formatted date string
    */
   function formatDate(date, lang, options) {
     try {
-      const locale = lang === 'es' ? 'es-ES' : 'en-US';
+      const localeMap = {
+        'es': 'es-ES',
+        'en': 'en-US',
+        'eu': 'eu-ES'
+      };
+      const locale = localeMap[lang] || 'es-ES';
       return new Intl.DateTimeFormat(locale, options).format(date);
     } catch (err) {
       console.error('Date formatting failed:', err);

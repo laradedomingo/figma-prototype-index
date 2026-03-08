@@ -57,7 +57,7 @@ global.figma = {
 // Implement the language storage functions based on the spec
 // These mirror the implementation in code.ts
 function validateLanguageCode(code) {
-  if (code === 'es' || code === 'en') {
+  if (code === 'es' || code === 'en' || code === 'eu') {
     return code;
   }
   console.warn(`Invalid language code: ${code}, falling back to Spanish`);
@@ -148,6 +148,10 @@ describe('Task 2.1: Language Storage Functions', () => {
 
     test('should accept "en" as valid language code', () => {
       expect(validateLanguageCode('en')).toBe('en');
+    });
+
+    test('should accept "eu" as valid language code', () => {
+      expect(validateLanguageCode('eu')).toBe('eu');
     });
 
     test('should fall back to "es" for invalid language codes', () => {

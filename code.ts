@@ -877,12 +877,12 @@ figma.showUI(__html__, { width: 440, height: 640, title: "Prototype Index" });
 // ─────────────────────────────────────────────
 
 /**
- * Validates language code to ensure only 'es' or 'en' are accepted
+ * Validates language code to ensure only 'es', 'en', or 'eu' are accepted
  * @param {string} code - The language code to validate
- * @returns {'es' | 'en'} Valid language code, defaults to 'es' if invalid
+ * @returns {'es' | 'en' | 'eu'} Valid language code, defaults to 'es' if invalid
  */
-function validateLanguageCode(code: string): 'es' | 'en' {
-  if (code === 'es' || code === 'en') {
+function validateLanguageCode(code: string): 'es' | 'en' | 'eu' {
+  if (code === 'es' || code === 'en' || code === 'eu') {
     return code;
   }
   console.warn(`Invalid language code: ${code}, falling back to Spanish`);
@@ -891,9 +891,9 @@ function validateLanguageCode(code: string): 'es' | 'en' {
 
 /**
  * Loads language setting from clientStorage
- * @returns {Promise<'es' | 'en'>} The saved language code, defaults to 'es' on error
+ * @returns {Promise<'es' | 'en' | 'eu'>} The saved language code, defaults to 'es' on error
  */
-async function loadLanguageSetting(): Promise<'es' | 'en'> {
+async function loadLanguageSetting(): Promise<'es' | 'en' | 'eu'> {
   try {
     const saved = await figma.clientStorage.getAsync('language');
     return validateLanguageCode(saved);
@@ -905,9 +905,9 @@ async function loadLanguageSetting(): Promise<'es' | 'en'> {
 
 /**
  * Saves language setting to clientStorage
- * @param {string} lang - The language code to save ('es' or 'en')
+ * @param {string} lang - The language code to save ('es', 'en', or 'eu')
  */
-async function saveLanguageSetting(lang: 'es' | 'en'): Promise<void> {
+async function saveLanguageSetting(lang: 'es' | 'en' | 'eu'): Promise<void> {
   try {
     await figma.clientStorage.setAsync('language', lang);
   } catch (err) {

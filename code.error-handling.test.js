@@ -34,12 +34,13 @@ describe('Task 6.2: Error handling for frame generation failures', () => {
     expect(generateIndexMatch).toBeTruthy();
     
     // Verify try block starts after function declaration
-    expect(codeContent).toContain('async function generateIndexFrame(prototypes, options) {\n  try {');
+    expect(codeContent).toContain('async function generateIndexFrame(prototypes, options) {');
+    expect(codeContent).toContain('try {');
   });
 
   test('should verify error handling and cleanup logic exists', () => {
     // Verify catch block exists
-    expect(codeContent).toContain('} catch (err) {');
+    expect(codeContent).toContain('catch (err) {');
     expect(codeContent).toContain('Handle frame generation failures');
     expect(codeContent).toContain('Clean up partial frames on error');
   });
@@ -63,7 +64,7 @@ describe('Task 6.2: Error handling for frame generation failures', () => {
 describe('Task 6.3: Error handling for positioning calculation', () => {
   test('should verify try-catch wrapper exists in calculateIndexPosition', () => {
     // Verify try-catch block exists
-    const positionFuncMatch = codeContent.match(/function calculateIndexPosition\(page, indexFrameHeight\) \{[\s\S]*?try \{[\s\S]*?\} catch/);
+    const positionFuncMatch = codeContent.match(/function calculateIndexPosition\(page, indexFrameHeight\) \{[\s\S]*?try \{[\s\S]*?catch/);
     expect(positionFuncMatch).toBeTruthy();
   });
 

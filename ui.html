@@ -277,6 +277,17 @@
   .toggle.on { background: var(--accent-dim); border: 1px solid rgba(124,106,247,0.4); }
   .toggle.on::after { transform: translateX(14px); background: var(--accent); }
 
+  /* Language select */
+  .language-select {
+    padding: 5px 10px; border-radius: 5px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--mono); font-size: 9px;
+    cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+    outline: none;
+  }
+  .language-select:hover { border-color: var(--border-light); }
+  .language-select:focus { border-color: var(--accent); background: var(--accent-dim); }
+
   /* Preview stats */
   .preview-box {
     background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px;
@@ -407,8 +418,8 @@
     </svg>
   </div>
   <div class="header-info">
-    <div class="header-title">Prototype Index</div>
-    <div class="header-file" id="file-name">Cargando…</div>
+    <div class="header-title" data-i18n="header.title">Prototype Index</div>
+    <div class="header-file" id="file-name" data-i18n="header.loading">Cargando…</div>
   </div>
   <div class="header-count" id="proto-count">—</div>
 </div>
@@ -417,11 +428,11 @@
 <div class="tabs">
   <button class="tab active" id="tab-list" onclick="switchTab('list')">
     <svg viewBox="0 0 12 12" fill="none"><rect x="1" y="2" width="10" height="1.5" rx=".5" fill="currentColor"/><rect x="1" y="5" width="10" height="1.5" rx=".5" fill="currentColor"/><rect x="1" y="8" width="7" height="1.5" rx=".5" fill="currentColor"/></svg>
-    Índice
+    <span data-i18n="tabs.index">Índice</span>
   </button>
   <button class="tab" id="tab-gen" onclick="switchTab('gen')">
     <svg viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M4 6h4M6 4v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-    Generar Frame
+    <span data-i18n="tabs.generate">Generar Frame</span>
   </button>
 </div>
 
@@ -431,21 +442,21 @@
   <div class="toolbar">
     <button class="btn btn-primary" id="refresh-btn" onclick="handleRefresh()">
       <svg viewBox="0 0 12 12" fill="none"><path d="M10 6a4 4 0 11-1.17-2.83" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M8.5 2l.5 1.2L10.2 2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Regenerar
+      <span data-i18n="toolbar.regenerate">Regenerar</span>
     </button>
     <button class="btn btn-watcher" id="watcher-btn" onclick="toggleWatcher()">
       <div class="watcher-dot"></div>
-      Watcher
+      <span data-i18n="toolbar.watcher">Watcher</span>
     </button>
     <div class="toolbar-spacer"></div>
     <button class="sort-btn" onclick="toggleSort()">
-      <span id="sort-label">A–Z</span>
+      <span id="sort-label" data-i18n="toolbar.sortAZ">A–Z</span>
     </button>
   </div>
 
   <div class="status-bar" id="status-bar">
     <div class="status-dot" id="status-dot"></div>
-    <span id="status-text">Listo</span>
+    <span id="status-text" data-i18n="status.ready">Listo</span>
   </div>
 
   <div class="list-container" id="list-container">
@@ -455,7 +466,7 @@
         <div class="loading-cell"></div><div class="loading-cell"></div><div class="loading-cell"></div>
         <div class="loading-cell"></div><div class="loading-cell"></div><div class="loading-cell"></div>
       </div>
-      <div class="loading-text">Escaneando proyecto…</div>
+      <div class="loading-text" data-i18n="status.scanning">Escaneando proyecto…</div>
     </div>
   </div>
 
@@ -467,7 +478,7 @@
 
     <!-- Layout -->
     <div class="gen-section">
-      <div class="gen-section-title">Disposición</div>
+      <div class="gen-section-title" data-i18n="generate.layout.title">Disposición</div>
       <div class="layout-options">
         <div class="layout-opt selected" id="opt-list" onclick="selectLayout('list')">
           <div class="layout-preview">
@@ -477,7 +488,7 @@
               <div class="lp-list-row"><div class="lp-list-thumb"></div><div class="lp-list-lines"><div class="lp-list-line" style="width:75%"></div><div class="lp-list-line" style="width:45%"></div></div></div>
             </div>
           </div>
-          <div class="layout-label">Lista</div>
+          <div class="layout-label" data-i18n="generate.layout.list">Lista</div>
         </div>
         <div class="layout-opt" id="opt-grid" onclick="selectLayout('grid')">
           <div class="layout-preview">
@@ -490,55 +501,65 @@
               <div class="lp-grid-cell"><div class="lp-grid-img"></div><div class="lp-grid-text"><div class="lp-grid-line" style="width:55%"></div></div></div>
             </div>
           </div>
-          <div class="layout-label">Cuadrícula</div>
+          <div class="layout-label" data-i18n="generate.layout.grid">Cuadrícula</div>
         </div>
       </div>
     </div>
 
     <!-- Options -->
     <div class="gen-section">
-      <div class="gen-section-title">Opciones</div>
+      <div class="gen-section-title" data-i18n="generate.options.title">Opciones</div>
       <div class="toggle-row">
         <div class="toggle-info">
-          <div class="toggle-name">Mostrar URLs</div>
-          <div class="toggle-desc">Incluye el enlace directo al prototipo</div>
+          <div class="toggle-name" data-i18n="generate.options.showUrls">Mostrar URLs</div>
+          <div class="toggle-desc" data-i18n="generate.options.showUrlsDesc">Incluye el enlace directo al prototipo</div>
         </div>
         <button class="toggle on" id="toggle-urls" onclick="toggleOption('urls')"></button>
       </div>
       <div class="toggle-row" style="margin-top:6px">
         <div class="toggle-info">
-          <div class="toggle-name">Crear página dedicada</div>
-          <div class="toggle-desc">Genera el frame en "📋 Prototype Index"</div>
+          <div class="toggle-name" data-i18n="generate.options.dedicatedPage">Crear página dedicada</div>
+          <div class="toggle-desc" data-i18n="generate.options.dedicatedPageDesc">Genera el frame en "📋 Prototype Index"</div>
         </div>
         <button class="toggle" id="toggle-page" onclick="toggleOption('dedicatedPage')"></button>
+      </div>
+      <div class="toggle-row" style="margin-top:6px">
+        <div class="toggle-info">
+          <div class="toggle-name" data-i18n="generate.options.language">Idioma / Language</div>
+          <div class="toggle-desc" data-i18n="generate.options.languageDesc">Español / English</div>
+        </div>
+        <select class="language-select" id="language-select" onchange="changeLanguage()">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
       </div>
     </div>
 
     <!-- Preview summary -->
     <div class="preview-box">
-      <div class="preview-title">Resumen del frame</div>
+      <div class="preview-title" data-i18n="generate.preview.title">Resumen del frame</div>
       <div class="preview-stats">
         <div class="preview-stat">
           <div class="preview-stat-val" id="prev-protos">0</div>
-          <div class="preview-stat-label">prototipos</div>
+          <div class="preview-stat-label" data-i18n="generate.preview.prototypes">prototipos</div>
         </div>
         <div class="preview-stat">
           <div class="preview-stat-val" id="prev-pages">0</div>
-          <div class="preview-stat-label">páginas</div>
+          <div class="preview-stat-label" data-i18n="generate.preview.pages">páginas</div>
         </div>
         <div class="preview-stat">
           <div class="preview-stat-val">1200</div>
-          <div class="preview-stat-label">px ancho</div>
+          <div class="preview-stat-label" data-i18n="generate.preview.width">px ancho</div>
         </div>
       </div>
-      <div class="preview-note" id="prev-note">El frame se generará en la primera página del proyecto.</div>
+      <div class="preview-note" id="prev-note" data-i18n="generate.preview.noteFirstPage">El frame se generará en la primera página del proyecto.</div>
     </div>
 
     <!-- Success -->
     <div class="success-box" id="success-box">
       <div class="success-title">
         <svg viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 6l2 2 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Frame generado correctamente
+        <span data-i18n="generate.success.title">Frame generado correctamente</span>
       </div>
       <div class="success-desc" id="success-desc">El frame se ha creado en la página "📋 Prototype Index".</div>
     </div>
@@ -549,7 +570,7 @@
     <!-- Generate button -->
     <button class="gen-btn" id="gen-btn" onclick="generateFrame()">
       <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-      Generar Frame en Figma
+      <span data-i18n="generate.button">Generar Frame en Figma</span>
     </button>
 
   </div>
@@ -562,6 +583,247 @@
 </div>
 
 <script>
+  // ── Translation System ──
+  
+  // Translation data structure with Spanish and English strings
+  const translations = {
+    es: {
+      // Header
+      'header.title': 'Prototype Index',
+      'header.loading': 'Cargando…',
+      'header.startingPoints': 'starting points',
+      'header.startingPoint': 'starting point',
+      
+      // Tabs
+      'tabs.index': 'Índice',
+      'tabs.generate': 'Generar Frame',
+      
+      // Toolbar
+      'toolbar.regenerate': 'Regenerar',
+      'toolbar.watcher': 'Watcher',
+      'toolbar.watching': 'Watching…',
+      'toolbar.sortAZ': 'A–Z',
+      'toolbar.sortZA': 'Z–A',
+      
+      // Status
+      'status.ready': 'Listo',
+      'status.watcherActive': 'Watcher activo — detectando cambios cada 2s',
+      'status.watcherInactive': 'Watcher inactivo',
+      'status.scanning': 'Escaneando proyecto…',
+      
+      // List view
+      'list.empty.title': 'Sin Starting Points detectados',
+      'list.empty.description': 'Abre el panel Prototype → selecciona un frame → pulsa "+" junto a "Flow starting point".',
+      'list.urlCopied': 'URL copiada',
+      'list.localFile': 'Archivo local · guarda en la nube para obtener URL',
+      
+      // Generate panel
+      'generate.layout.title': 'Disposición',
+      'generate.layout.list': 'Lista',
+      'generate.layout.grid': 'Cuadrícula',
+      'generate.options.title': 'Opciones',
+      'generate.options.showUrls': 'Mostrar URLs',
+      'generate.options.showUrlsDesc': 'Incluye el enlace directo al prototipo',
+      'generate.options.dedicatedPage': 'Crear página dedicada',
+      'generate.options.dedicatedPageDesc': 'Genera el frame en "📋 Prototype Index"',
+      'generate.options.language': 'Idioma / Language',
+      'generate.options.languageDesc': 'Español / English',
+      'generate.preview.title': 'Resumen del frame',
+      'generate.preview.prototypes': 'prototipos',
+      'generate.preview.pages': 'páginas',
+      'generate.preview.width': 'px ancho',
+      'generate.preview.noteFirstPage': 'El frame se generará en la primera página del proyecto.',
+      'generate.preview.noteDedicatedPage': 'El frame se generará en la página "📋 Prototype Index" y se creará si no existe.',
+      'generate.button': 'Generar Frame en Figma',
+      'generate.button.generating': 'Generando frame…',
+      'generate.success.title': 'Frame generado correctamente',
+      'generate.success.description': 'El frame se ha creado en la página',
+      
+      // Toast messages
+      'toast.listUpdated': 'Lista actualizada',
+      'toast.frameGenerated': 'Frame generado ✓',
+      
+      // Footer
+      'footer.version': 'Prototype Index',
+      'footer.generated': 'Generado el',
+      'footer.at': 'a las',
+    },
+    en: {
+      // Header
+      'header.title': 'Prototype Index',
+      'header.loading': 'Loading…',
+      'header.startingPoints': 'starting points',
+      'header.startingPoint': 'starting point',
+      
+      // Tabs
+      'tabs.index': 'Index',
+      'tabs.generate': 'Generate Frame',
+      
+      // Toolbar
+      'toolbar.regenerate': 'Regenerate',
+      'toolbar.watcher': 'Watcher',
+      'toolbar.watching': 'Watching…',
+      'toolbar.sortAZ': 'A–Z',
+      'toolbar.sortZA': 'Z–A',
+      
+      // Status
+      'status.ready': 'Ready',
+      'status.watcherActive': 'Watcher active — detecting changes every 2s',
+      'status.watcherInactive': 'Watcher inactive',
+      'status.scanning': 'Scanning project…',
+      
+      // List view
+      'list.empty.title': 'No Starting Points detected',
+      'list.empty.description': 'Open the Prototype panel → select a frame → click "+" next to "Flow starting point".',
+      'list.urlCopied': 'URL copied',
+      'list.localFile': 'Local file · save to cloud to get URL',
+      
+      // Generate panel
+      'generate.layout.title': 'Layout',
+      'generate.layout.list': 'List',
+      'generate.layout.grid': 'Grid',
+      'generate.options.title': 'Options',
+      'generate.options.showUrls': 'Show URLs',
+      'generate.options.showUrlsDesc': 'Include direct link to prototype',
+      'generate.options.dedicatedPage': 'Create dedicated page',
+      'generate.options.dedicatedPageDesc': 'Generate frame in "📋 Prototype Index"',
+      'generate.options.language': 'Idioma / Language',
+      'generate.options.languageDesc': 'Español / English',
+      'generate.preview.title': 'Frame summary',
+      'generate.preview.prototypes': 'prototypes',
+      'generate.preview.pages': 'pages',
+      'generate.preview.width': 'px width',
+      'generate.preview.noteFirstPage': 'The frame will be generated on the first page of the project.',
+      'generate.preview.noteDedicatedPage': 'The frame will be generated on the "📋 Prototype Index" page and will be created if it doesn\'t exist.',
+      'generate.button': 'Generate Frame in Figma',
+      'generate.button.generating': 'Generating frame…',
+      'generate.success.title': 'Frame generated successfully',
+      'generate.success.description': 'The frame has been created on page',
+      
+      // Toast messages
+      'toast.listUpdated': 'List updated',
+      'toast.frameGenerated': 'Frame generated ✓',
+      
+      // Footer
+      'footer.version': 'Prototype Index',
+      'footer.generated': 'Generated on',
+      'footer.at': 'at',
+    }
+  };
+
+  // Translation manager functions
+  
+  /**
+   * Get translated text for a key
+   * @param {string} key - Translation key
+   * @param {string} lang - Language code ('es' or 'en')
+   * @returns {string} Translated text, falls back to Spanish if not found
+   */
+  function getTranslation(key, lang) {
+    // Try requested language
+    if (translations[lang] && translations[lang][key]) {
+      return translations[lang][key];
+    }
+    
+    // Fall back to Spanish
+    if (translations['es'] && translations['es'][key]) {
+      console.warn(`Missing translation for key "${key}" in language "${lang}"`);
+      return translations['es'][key];
+    }
+    
+    // Last resort: return key
+    console.error(`Missing translation for key "${key}" in all languages`);
+    return key;
+  }
+
+  /**
+   * Apply all translations to the UI
+   * @param {string} lang - Language code ('es' or 'en')
+   */
+  function applyTranslations(lang) {
+    // Update all elements with data-i18n attribute
+    document.querySelectorAll('[data-i18n]').forEach(element => {
+      const key = element.getAttribute('data-i18n');
+      if (key) {
+        element.textContent = getTranslation(key, lang);
+      }
+    });
+    
+    // Update dynamic content
+    updateDynamicTranslations(lang);
+  }
+
+  /**
+   * Format dates according to locale
+   * @param {Date} date - Date to format
+   * @param {string} lang - Language code ('es' or 'en')
+   * @param {Intl.DateTimeFormatOptions} options - Formatting options
+   * @returns {string} Formatted date string
+   */
+  function formatDate(date, lang, options) {
+    try {
+      const locale = lang === 'es' ? 'es-ES' : 'en-US';
+      return new Intl.DateTimeFormat(locale, options).format(date);
+    } catch (err) {
+      console.error('Date formatting failed:', err);
+      return date.toISOString(); // Fallback to ISO format
+    }
+  }
+
+  /**
+   * Update dynamic content that changes based on state
+   * @param {string} lang - Language code ('es' or 'en')
+   */
+  function updateDynamicTranslations(lang) {
+    // Update starting points count text with correct singular/plural
+    const countText = prototypes.length === 1 
+      ? `1 ${getTranslation('header.startingPoint', lang)}`
+      : `${prototypes.length} ${getTranslation('header.startingPoints', lang)}`;
+    document.getElementById('proto-count').textContent = countText;
+    
+    // Update status messages based on current state
+    if (isWatching) {
+      updateWatcherUI();
+    } else {
+      const statusText = document.getElementById('status-text');
+      statusText.textContent = getTranslation('status.watcherInactive', lang);
+    }
+    
+    // Update sort label
+    document.getElementById('sort-label').textContent = getTranslation(sortAZ ? 'toolbar.sortAZ' : 'toolbar.sortZA', lang);
+    
+    // Update preview text
+    updatePreviewText();
+    
+    // Update generate button text based on generating state
+    const genBtn = document.getElementById('gen-btn');
+    if (genBtn.disabled && genBtn.classList.contains('generating')) {
+      // Button is in generating state
+      genBtn.innerHTML = `<div class="spinner"></div> ${getTranslation('generate.button.generating', lang)}`;
+    } else {
+      // Button is in normal state
+      genBtn.innerHTML = `<svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${getTranslation('generate.button', lang)}`;
+    }
+    
+    // Update "copied" tooltip text
+    document.getElementById('copied').textContent = getTranslation('list.urlCopied', lang);
+    
+    // Re-render prototypes to update empty state and card text
+    if (prototypes.length > 0) {
+      renderPrototypes(prototypes, null);
+    } else {
+      // Update empty state
+      const container = document.getElementById('list-container');
+      if (container.querySelector('.empty-state')) {
+        container.innerHTML = `<div class="empty-state">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2"/></svg></div>
+          <div class="empty-title">${getTranslation('list.empty.title', lang)}</div>
+          <div class="empty-desc">${getTranslation('list.empty.description', lang)}</div>
+        </div>`;
+      }
+    }
+  }
+
   // ── State ──
   let prototypes = [];
   let thumbnails = {};
@@ -571,6 +833,7 @@
   let optUrls = true;
   let optPage = false;
   let toastTimer = null;
+  let currentLanguage = 'es'; // Default language
 
   // ── Message handler ──
   window.onmessage = (event) => {
@@ -592,7 +855,7 @@
         break;
       case 'PROTOTYPES_UPDATED':
         renderPrototypes(msg.prototypes, msg.timestamp);
-        showToast('Lista actualizada');
+        showToast(getTranslation('toast.listUpdated', currentLanguage));
         break;
       case 'WATCHER_STARTED':
         isWatching = true; updateWatcherUI(); break;
@@ -603,10 +866,10 @@
       case 'FRAME_GENERATED':
         setGenerating(false);
         document.getElementById('success-box').classList.add('show');
-        document.getElementById('success-desc').textContent =
-          `El frame se ha creado en la página "${msg.pageName}".`;
+        const successDescText = `${getTranslation('generate.success.description', currentLanguage)} "${msg.pageName}".`;
+        document.getElementById('success-desc').textContent = successDescText;
         document.getElementById('error-box').classList.remove('show');
-        showToast('Frame generado ✓');
+        showToast(getTranslation('toast.frameGenerated', currentLanguage));
         break;
       case 'FRAME_ERROR':
         setGenerating(false);
@@ -615,11 +878,23 @@
         document.getElementById('success-box').classList.remove('show');
         break;
       case 'SETTINGS_LOADED':
+        // Process dedicatedPage setting
         if (msg.settings && msg.settings.dedicatedPage !== undefined) {
           optPage = msg.settings.dedicatedPage;
           document.getElementById('toggle-page').classList.toggle('on', optPage);
           updatePreviewText();
         }
+        // Process language setting
+        if (msg.settings && msg.settings.language !== undefined) {
+          currentLanguage = msg.settings.language;
+        } else {
+          // Apply default Spanish if no saved language exists
+          currentLanguage = 'es';
+        }
+        // Set select dropdown value based on loaded language
+        document.getElementById('language-select').value = currentLanguage;
+        // Call applyTranslations() with loaded language on initialization
+        applyTranslations(currentLanguage);
         break;
     }
   };
@@ -627,13 +902,15 @@
   // ── Render list ──
   function renderPrototypes(data, timestamp) {
     prototypes = data || [];
-    document.getElementById('proto-count').textContent =
-      prototypes.length === 1 ? '1 starting point' : `${prototypes.length} starting points`;
+    const countText = prototypes.length === 1 
+      ? `1 ${getTranslation('header.startingPoint', currentLanguage)}`
+      : `${prototypes.length} ${getTranslation('header.startingPoints', currentLanguage)}`;
+    document.getElementById('proto-count').textContent = countText;
 
     if (timestamp) {
       const d = new Date(timestamp);
       document.getElementById('last-updated').textContent =
-        d.toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+        formatDate(d, currentLanguage, { hour:'2-digit', minute:'2-digit', second:'2-digit' });
     }
 
     // Update generate panel counters
@@ -645,8 +922,8 @@
     if (prototypes.length === 0) {
       container.innerHTML = `<div class="empty-state">
         <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2"/></svg></div>
-        <div class="empty-title">Sin Starting Points detectados</div>
-        <div class="empty-desc">Abre el panel Prototype → selecciona un frame → pulsa "+" junto a "Flow starting point".</div>
+        <div class="empty-title">${getTranslation('list.empty.title', currentLanguage)}</div>
+        <div class="empty-desc">${getTranslation('list.empty.description', currentLanguage)}</div>
       </div>`;
       return;
     }
@@ -714,7 +991,7 @@
           <div class="proto-frame-name">${esc(p.name)}</div>
           ${shortUrl
             ? `<div class="proto-url proto-url-link" onclick="openUrl(event,'${esc(p.prototypeUrl)}')" title="${esc(p.prototypeUrl)}">${shortUrl}</div>`
-            : '<div class="proto-url" style="color:var(--text-dim);font-size:8px">Archivo local · guarda en la nube para obtener URL</div>'
+            : `<div class="proto-url" style="color:var(--text-dim);font-size:8px">${getTranslation('list.localFile', currentLanguage)}</div>`
           }
           <div class="proto-meta">
             <span class="meta-tag">${p.width}×${p.height}</span>
@@ -764,11 +1041,32 @@
     }
   }
 
+  // ── Change language ──
+  function changeLanguage() {
+    // Get selected language from dropdown
+    const selectEl = document.getElementById('language-select');
+    currentLanguage = selectEl.value;
+    
+    // Apply translations to update all UI text immediately
+    applyTranslations(currentLanguage);
+    
+    // Send SAVE_SETTING message to code.ts to persist preference
+    parent.postMessage({
+      pluginMessage: {
+        type: 'SAVE_SETTING',
+        key: 'language',
+        value: currentLanguage
+      }
+    }, '*');
+  }
+
   // ── Update preview text ──
   function updatePreviewText() {
-    document.getElementById('prev-note').textContent = optPage
-      ? 'El frame se generará en la página "📋 Prototype Index" y se creará si no existe.'
-      : 'El frame se generará en la primera página del proyecto.';
+    const noteElement = document.getElementById('prev-note');
+    noteElement.textContent = getTranslation(
+      optPage ? 'generate.preview.noteDedicatedPage' : 'generate.preview.noteFirstPage',
+      currentLanguage
+    );
   }
 
   // ── Generate frame ──
@@ -778,7 +1076,7 @@
     parent.postMessage({
       pluginMessage: {
         type: 'GENERATE_FRAME',
-        options: { layout: selectedLayout, showUrls: optUrls, dedicatedPage: optPage }
+        options: { layout: selectedLayout, showUrls: optUrls, dedicatedPage: optPage, language: currentLanguage }
       }
     }, '*');
   }
@@ -788,11 +1086,11 @@
     if (active) {
       btn.disabled = true;
       btn.classList.add('generating');
-      btn.innerHTML = `<div class="spinner"></div> Generando frame…`;
+      btn.innerHTML = `<div class="spinner"></div> ${getTranslation('generate.button.generating', currentLanguage)}`;
     } else {
       btn.disabled = false;
       btn.classList.remove('generating');
-      btn.innerHTML = `<svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Generar Frame en Figma`;
+      btn.innerHTML = `<svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> ${getTranslation('generate.button', currentLanguage)}`;
     }
   }
 
@@ -823,20 +1121,20 @@
     const st = document.getElementById('status-text');
     if (isWatching) {
       btn.classList.add('active');
-      btn.innerHTML = `<div class="watcher-dot"></div> Watching…`;
+      btn.innerHTML = `<div class="watcher-dot"></div> <span>${getTranslation('toolbar.watching', currentLanguage)}</span>`;
       sb.classList.add('watching');
-      st.textContent = 'Watcher activo — detectando cambios cada 2s';
+      st.textContent = getTranslation('status.watcherActive', currentLanguage);
     } else {
       btn.classList.remove('active');
-      btn.innerHTML = `<div class="watcher-dot"></div> Watcher`;
+      btn.innerHTML = `<div class="watcher-dot"></div> <span>${getTranslation('toolbar.watcher', currentLanguage)}</span>`;
       sb.classList.remove('watching');
-      st.textContent = 'Watcher inactivo';
+      st.textContent = getTranslation('status.watcherInactive', currentLanguage);
     }
   }
 
   function toggleSort() {
     sortAZ = !sortAZ;
-    document.getElementById('sort-label').textContent = sortAZ ? 'A–Z' : 'Z–A';
+    document.getElementById('sort-label').textContent = getTranslation(sortAZ ? 'toolbar.sortAZ' : 'toolbar.sortZA', currentLanguage);
     renderPrototypes(prototypes, null);
   }
 

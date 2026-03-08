@@ -786,12 +786,60 @@ function stopWatcher() {
 // INIT
 // ─────────────────────────────────────────────
 figma.showUI(__html__, { width: 440, height: 640, title: "Prototype Index" });
+// ─────────────────────────────────────────────
+// SETTINGS STORAGE
+// ─────────────────────────────────────────────
+/**
+ * Validates language code to ensure only 'es' or 'en' are accepted
+ * @param {string} code - The language code to validate
+ * @returns {'es' | 'en'} Valid language code, defaults to 'es' if invalid
+ */
+function validateLanguageCode(code) {
+    if (code === 'es' || code === 'en') {
+        return code;
+    }
+    console.warn(`Invalid language code: ${code}, falling back to Spanish`);
+    return 'es';
+}
+/**
+ * Loads language setting from clientStorage
+ * @returns {Promise<'es' | 'en'>} The saved language code, defaults to 'es' on error
+ */
+async function loadLanguageSetting() {
+    try {
+        const saved = await figma.clientStorage.getAsync('language');
+        return validateLanguageCode(saved);
+    }
+    catch (err) {
+        console.error('Failed to load language setting:', err);
+        return 'es'; // Default fallback
+    }
+}
+/**
+ * Saves language setting to clientStorage
+ * @param {string} lang - The language code to save ('es' or 'en')
+ */
+async function saveLanguageSetting(lang) {
+    try {
+        await figma.clientStorage.setAsync('language', lang);
+    }
+    catch (err) {
+        console.error('Failed to save language setting:', err);
+        // Continue with in-memory state
+        figma.ui.postMessage({
+            type: 'SETTING_ERROR',
+            error: 'Could not save language preference'
+        });
+    }
+}
 // Load settings on startup
 async function loadSettings() {
     try {
         const dedicatedPage = await figma.clientStorage.getAsync('dedicatedPage');
+        const language = await loadLanguageSetting();
         const settings = {
-            dedicatedPage: dedicatedPage !== undefined ? dedicatedPage : false
+            dedicatedPage: dedicatedPage !== undefined ? dedicatedPage : false,
+            language: language
         };
         figma.ui.postMessage({ type: "SETTINGS_LOADED", settings });
     }
@@ -800,7 +848,7 @@ async function loadSettings() {
         // Send default settings on error
         figma.ui.postMessage({
             type: "SETTINGS_LOADED",
-            settings: { dedicatedPage: false }
+            settings: { dedicatedPage: false, language: 'es' }
         });
     }
 }
@@ -863,7 +911,14 @@ figma.ui.onmessage = async (msg) => {
         }
         case "SAVE_SETTING": {
             try {
-                await figma.clientStorage.setAsync(msg.key, msg.value);
+                // Special handling for language setting with validation
+                if (msg.key === 'language') {
+                    const validatedLang = validateLanguageCode(msg.value);
+                    await saveLanguageSetting(validatedLang);
+                }
+                else {
+                    await figma.clientStorage.setAsync(msg.key, msg.value);
+                }
                 figma.ui.postMessage({ type: "SETTING_SAVED", key: msg.key });
             }
             catch (err) {
@@ -875,8 +930,10 @@ figma.ui.onmessage = async (msg) => {
         case "LOAD_SETTINGS": {
             try {
                 const dedicatedPage = await figma.clientStorage.getAsync('dedicatedPage');
+                const language = await loadLanguageSetting();
                 const settings = {
-                    dedicatedPage: dedicatedPage !== undefined ? dedicatedPage : false
+                    dedicatedPage: dedicatedPage !== undefined ? dedicatedPage : false,
+                    language: language
                 };
                 figma.ui.postMessage({ type: "SETTINGS_LOADED", settings });
             }
@@ -885,7 +942,7 @@ figma.ui.onmessage = async (msg) => {
                 // Send default settings on error
                 figma.ui.postMessage({
                     type: "SETTINGS_LOADED",
-                    settings: { dedicatedPage: false }
+                    settings: { dedicatedPage: false, language: 'es' }
                 });
             }
             break;

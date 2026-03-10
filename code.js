@@ -113,6 +113,10 @@ async function getAllPrototypes() {
     console.log("=== URL Debug Info ===");
     console.log("figma.fileKey:", figma.fileKey);
     console.log("figma.root.name:", figma.root.name);
+    
+    // Load all pages first
+    await figma.loadAllPagesAsync();
+    
     for (var pi = 0; pi < figma.root.children.length; pi++) {
         var page = figma.root.children[pi];
         if (page.name === "📋 Prototype Index")
@@ -188,6 +192,10 @@ async function loadFonts() {
 async function generateIndexFrame(prototypes, options) {
     try {
         await loadFonts();
+        
+        // Load all pages first
+        await figma.loadAllPagesAsync();
+        
         // Group by page
         const pageGroups = {};
         for (const p of prototypes) {
@@ -533,7 +541,7 @@ async function generateIndexFrame(prototypes, options) {
         let targetPage;
         if (dedicatedPage) {
             // Dedicated page mode: create or find the dedicated page
-            targetPage = findOrCreateIndexPage();
+            targetPage = await findOrCreateIndexPage();
         }
         else {
             // First page mode: use the first page in the document
@@ -680,7 +688,7 @@ async function generateIndexFrame(prototypes, options) {
         // Add mainFrame to the target page
         targetPage.appendChild(mainFrame);
         // IMPORTANT: Switch to the target page BEFORE selecting nodes on it
-        figma.currentPage = targetPage;
+        await figma.setCurrentPageAsync(targetPage);
         // Now we can safely scroll and select the main frame
         figma.viewport.scrollAndZoomIntoView([mainFrame]);
         targetPage.selection = [mainFrame];
@@ -737,8 +745,12 @@ async function generateIndexFrame(prototypes, options) {
 // ─────────────────────────────────────────────
 // DEDICATED PAGE MANAGEMENT
 // ─────────────────────────────────────────────
-function findOrCreateIndexPage() {
+async function findOrCreateIndexPage() {
     const INDEX_PAGE_NAME = "📋 Prototype Index";
+    
+    // Load all pages first
+    await figma.loadAllPagesAsync();
+    
     // Search for existing index page
     for (const page of figma.root.children) {
         if (page.name === INDEX_PAGE_NAME) {
@@ -903,11 +915,11 @@ figma.ui.onmessage = async (msg) => {
             figma.ui.postMessage({ type: "WATCHER_STOPPED" });
             break;
         case "NAVIGATE_TO": {
-            const node = figma.getNodeById(msg.nodeId);
+            const node = await figma.getNodeByIdAsync(msg.nodeId);
             if (node && node.parent && node.parent.type === 'PAGE') {
-                figma.currentPage = node.parent;
+                await figma.setCurrentPageAsync(node.parent);
                 figma.viewport.scrollAndZoomIntoView([node]);
-                figma.currentPage.selection = [node];
+                node.parent.selection = [node];
             }
             break;
         }

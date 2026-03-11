@@ -277,6 +277,53 @@
   .toggle.on { background: var(--accent-dim); border: 1px solid rgba(124,106,247,0.4); }
   .toggle.on::after { transform: translateX(14px); background: var(--accent); }
 
+  /* Page filter */
+  .page-filter-section {
+    /* Positioned above layout options - no special positioning needed */
+  }
+  .page-filter-list {
+    max-height: 280px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .page-filter-list::-webkit-scrollbar { width: 3px; }
+  .page-filter-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+  .page-filter-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    transition: border-color 0.15s;
+  }
+  .page-filter-item:hover {
+    border-color: var(--border-light);
+  }
+  .page-filter-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .page-filter-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .page-filter-count {
+    font-size: 9px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+
   /* Language select */
   .language-select {
     padding: 5px 10px; border-radius: 5px;
@@ -476,6 +523,14 @@
 <div class="panel" id="panel-gen">
   <div class="gen-panel">
 
+    <!-- Page Filter -->
+    <div class="gen-section page-filter-section">
+      <div class="gen-section-title" data-i18n="generate.pageFilter.title">Páginas a incluir</div>
+      <div class="page-filter-list" id="page-filter-list">
+        <!-- Dynamically generated page items -->
+      </div>
+    </div>
+
     <!-- Layout -->
     <div class="gen-section">
       <div class="gen-section-title" data-i18n="generate.layout.title">Disposición</div>
@@ -629,12 +684,17 @@
       'generate.options.dedicatedPageDesc': 'Genera el frame en "📋 Prototype Index"',
       'generate.options.language': 'Idioma',
       'generate.options.languageDesc': 'Español / English / Euskara',
+      'generate.pageFilter.title': 'Páginas a incluir',
+      'generate.pageFilter.empty': 'No hay páginas con prototipos',
+      'generate.pageFilter.prototypes': 'prototipos',
+      'generate.pageFilter.prototype': 'prototipo',
       'generate.preview.title': 'Resumen del frame',
       'generate.preview.prototypes': 'prototipos',
       'generate.preview.pages': 'páginas',
       'generate.preview.width': 'px ancho',
       'generate.preview.noteFirstPage': 'El frame se generará en la primera página del proyecto.',
       'generate.preview.noteDedicatedPage': 'El frame se generará en la página "📋 Prototype Index" y se creará si no existe.',
+      'generate.preview.warningNoSelection': '⚠️ No hay prototipos seleccionados. Se generará un frame vacío.',
       'generate.button': 'Generar Frame en Figma',
       'generate.button.generating': 'Generando frame…',
       'generate.success.title': 'Frame generado correctamente',
@@ -690,12 +750,17 @@
       'generate.options.dedicatedPageDesc': 'Generate frame in "📋 Prototype Index"',
       'generate.options.language': 'Language',
       'generate.options.languageDesc': 'Español / English / Euskara',
+      'generate.pageFilter.title': 'Pages to include',
+      'generate.pageFilter.empty': 'No pages with prototypes',
+      'generate.pageFilter.prototypes': 'prototypes',
+      'generate.pageFilter.prototype': 'prototype',
       'generate.preview.title': 'Frame summary',
       'generate.preview.prototypes': 'prototypes',
       'generate.preview.pages': 'pages',
       'generate.preview.width': 'px width',
       'generate.preview.noteFirstPage': 'The frame will be generated on the first page of the project.',
       'generate.preview.noteDedicatedPage': 'The frame will be generated on the "📋 Prototype Index" page and will be created if it doesn\'t exist.',
+      'generate.preview.warningNoSelection': '⚠️ No prototypes selected. An empty frame will be generated.',
       'generate.button': 'Generate Frame in Figma',
       'generate.button.generating': 'Generating frame…',
       'generate.success.title': 'Frame generated successfully',
@@ -751,12 +816,17 @@
       'generate.options.dedicatedPageDesc': 'Sortu markoa "📋 Prototype Index"-en',
       'generate.options.language': 'Hizkuntza',
       'generate.options.languageDesc': 'Español / English / Euskara',
+      'generate.pageFilter.title': 'Sartzeko orrialdeak',
+      'generate.pageFilter.empty': 'Ez dago prototipoekin orrialdeak',
+      'generate.pageFilter.prototypes': 'prototipo',
+      'generate.pageFilter.prototype': 'prototipo',
       'generate.preview.title': 'Markoaren laburpena',
       'generate.preview.prototypes': 'prototipo',
       'generate.preview.pages': 'orrialde',
       'generate.preview.width': 'px zabalera',
       'generate.preview.noteFirstPage': 'Markoa proiektuaren lehen orrialdean sortuko da.',
       'generate.preview.noteDedicatedPage': 'Markoa "📋 Prototype Index" orrialdean sortuko da eta sortuko da ez bada existitzen.',
+      'generate.preview.warningNoSelection': '⚠️ Ez da prototipoak hautatu. Marko huts bat sortuko da.',
       'generate.button': 'Sortu Markoa Figman',
       'generate.button.generating': 'Markoa sortzen…',
       'generate.success.title': 'Markoa behar bezala sortu da',
@@ -901,6 +971,201 @@
   let optPage = false;
   let toastTimer = null;
   let currentLanguage = 'es'; // Default language
+  let pageSelections = {}; // Page selection state: { [pageId]: boolean }
+
+  // ── Page Selection State Management ──
+  
+  /**
+   * Initialize page selections with all pages selected
+   * @param {Array} pages - Array of page objects with id property
+   * @returns {Object} Selection state object with all pages set to true
+   */
+  function initializePageSelections(pages) {
+    const selections = {};
+    pages.forEach(page => {
+      selections[page.id] = true;
+    });
+    return selections;
+  }
+
+  /**
+   * Merge saved selections with current pages
+   * @param {Object} savedSelections - Previously saved selection state
+   * @param {Array} currentPages - Current pages in the document
+   * @returns {Object} Merged selection state
+   */
+  function mergePageSelections(savedSelections, currentPages) {
+    const merged = {};
+    currentPages.forEach(page => {
+      // Use saved value if exists, otherwise default to true
+      merged[page.id] = savedSelections[page.id] !== undefined 
+        ? savedSelections[page.id] 
+        : true;
+    });
+    return merged;
+  }
+
+  /**
+   * Toggle page selection state
+   * @param {string} pageId - ID of the page to toggle
+   */
+  function togglePageSelection(pageId) {
+    pageSelections[pageId] = !pageSelections[pageId];
+    updatePreviewSummary();
+    savePageSelections();
+  }
+
+  /**
+   * Debounce timer for savePageSelections
+   */
+  let savePageSelectionsTimer = null;
+
+  /**
+   * Save page selections to storage via sandbox with 300ms debouncing
+   * UI updates happen immediately, but storage persistence is debounced
+   */
+  function savePageSelections() {
+    // Clear any existing timer
+    if (savePageSelectionsTimer) {
+      clearTimeout(savePageSelectionsTimer);
+    }
+    
+    // Set new timer for 300ms debounce
+    savePageSelectionsTimer = setTimeout(() => {
+      parent.postMessage({
+        pluginMessage: {
+          type: 'SAVE_PAGE_SELECTIONS',
+          pageSelections: pageSelections
+        }
+      }, '*');
+      savePageSelectionsTimer = null;
+    }, 300);
+  }
+
+  /**
+   * Update preview summary based on current page selections
+   */
+  function updatePreviewSummary() {
+    // Calculate filtered prototype counts based on page selections
+    let selectedPrototypeCount = 0;
+    let selectedPageCount = 0;
+    
+    // If pageSelections is empty or all pages are selected, show all prototypes
+    if (Object.keys(pageSelections).length === 0) {
+      // No page selections yet - show all prototypes
+      selectedPrototypeCount = prototypes.length;
+      const pages = groupByPage(prototypes);
+      selectedPageCount = Object.keys(pages).length;
+    } else {
+      // Count prototypes from selected pages only
+      prototypes.forEach(proto => {
+        if (pageSelections[proto.pageId] === true) {
+          selectedPrototypeCount++;
+        }
+      });
+      
+      // Count selected pages
+      Object.values(pageSelections).forEach(selected => {
+        if (selected) selectedPageCount++;
+      });
+    }
+    
+    // Update preview display
+    document.getElementById('prev-protos').textContent = selectedPrototypeCount;
+    document.getElementById('prev-pages').textContent = selectedPageCount;
+    
+    // Show warning if no prototypes selected (all pages deselected)
+    const noteElement = document.getElementById('prev-note');
+    if (selectedPrototypeCount === 0 && prototypes.length > 0) {
+      // All pages deselected - show warning
+      noteElement.textContent = getTranslation('generate.preview.warningNoSelection', currentLanguage);
+      noteElement.style.color = 'var(--text-muted)';
+    } else {
+      // Normal state - show regular note
+      noteElement.textContent = getTranslation(
+        optPage ? 'generate.preview.noteDedicatedPage' : 'generate.preview.noteFirstPage',
+        currentLanguage
+      );
+      noteElement.style.color = 'var(--text-dim)';
+    }
+  }
+
+  /**
+   * Render page filter list with toggle controls
+   * @param {Array} pages - Array of page objects with id, name, and prototypeCount
+   */
+  function renderPageFilterList(pages) {
+    const container = document.getElementById('page-filter-list');
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Handle empty page list
+    if (!pages || pages.length === 0) {
+      container.innerHTML = `<div style="font-size: 9px; color: var(--text-dim); font-family: var(--mono); text-align: center; padding: 12px;">
+        ${getTranslation('generate.pageFilter.empty', currentLanguage)}
+      </div>`;
+      return;
+    }
+    
+    // Generate HTML for each page item
+    let html = '';
+    pages.forEach(page => {
+      // Determine toggle state based on pageSelections
+      const isSelected = pageSelections[page.id] !== false; // Default to true if not set
+      const toggleClass = isSelected ? 'on' : 'off';
+      
+      // Get proper pluralization for prototype count
+      const prototypeLabel = page.prototypeCount === 1
+        ? getTranslation('generate.pageFilter.prototype', currentLanguage)
+        : getTranslation('generate.pageFilter.prototypes', currentLanguage);
+      
+      html += `
+        <div class="page-filter-item">
+          <div class="page-filter-info">
+            <div class="page-filter-name">${esc(page.name)}</div>
+            <div class="page-filter-count">${page.prototypeCount} ${prototypeLabel}</div>
+          </div>
+          <button class="toggle ${toggleClass}" onclick="togglePage('${esc(page.id)}')"></button>
+        </div>
+      `;
+    });
+    
+    container.innerHTML = html;
+  }
+
+  /**
+   * Toggle page selection (called from onclick handler)
+   * @param {string} pageId - ID of the page to toggle
+   */
+  function togglePage(pageId) {
+    togglePageSelection(pageId);
+    // Re-render the page filter list to update toggle visual state
+    const pages = extractPageMetadata(prototypes);
+    renderPageFilterList(pages);
+  }
+
+  /**
+   * Extract page metadata from prototypes array
+   * @param {Array} prototypes - Array of prototype objects
+   * @returns {Array} Array of page objects with id, name, and prototypeCount
+   */
+  function extractPageMetadata(prototypes) {
+    const pageMap = new Map();
+    
+    prototypes.forEach(proto => {
+      if (!pageMap.has(proto.pageId)) {
+        pageMap.set(proto.pageId, {
+          id: proto.pageId,
+          name: proto.pageName,
+          prototypeCount: 0
+        });
+      }
+      pageMap.get(proto.pageId).prototypeCount++;
+    });
+    
+    return Array.from(pageMap.values());
+  }
 
   // ── Message handler ──
   window.onmessage = (event) => {
@@ -912,15 +1177,42 @@
         if (msg.thumbnails) {
           thumbnails = msg.thumbnails;
         }
+        
+        // Extract pages from message payload
+        if (msg.pages && msg.pages.length > 0) {
+          // Check if we have saved page selections
+          if (Object.keys(pageSelections).length === 0) {
+            // First-time usage - initialize with all pages selected
+            pageSelections = initializePageSelections(msg.pages);
+          } else {
+            // Merge existing selections with current pages
+            pageSelections = mergePageSelections(pageSelections, msg.pages);
+          }
+        }
+        
         renderPrototypes(msg.prototypes, msg.timestamp);
         break;
       case 'PROTOTYPES_DATA':
         if (msg.thumbnails) {
           thumbnails = msg.thumbnails;
         }
+        
+        // Extract pages from message payload
+        if (msg.pages && msg.pages.length > 0) {
+          // Merge existing selections with current pages
+          // This handles page additions, removals, and renames
+          pageSelections = mergePageSelections(pageSelections, msg.pages);
+        }
+        
         renderPrototypes(msg.prototypes, msg.timestamp);
         break;
       case 'PROTOTYPES_UPDATED':
+        // Extract pages from prototypes and merge with selections
+        if (msg.prototypes && msg.prototypes.length > 0) {
+          const currentPages = extractPageMetadata(msg.prototypes);
+          pageSelections = mergePageSelections(pageSelections, currentPages);
+        }
+        
         renderPrototypes(msg.prototypes, msg.timestamp);
         showToast(getTranslation('toast.listUpdated', currentLanguage));
         break;
@@ -962,6 +1254,45 @@
         document.getElementById('language-select').value = currentLanguage;
         // Call applyTranslations() with loaded language on initialization
         applyTranslations(currentLanguage);
+        
+        // Process pageSelections setting
+        if (msg.settings && msg.settings.pageSelections !== undefined) {
+          const savedSelections = msg.settings.pageSelections;
+          
+          // Check if we have prototypes data to merge with
+          if (prototypes.length > 0) {
+            // Extract current pages from prototypes
+            const currentPages = extractPageMetadata(prototypes);
+            
+            // Check if saved selections is empty (first-time usage)
+            if (Object.keys(savedSelections).length === 0) {
+              // Initialize with all pages selected
+              pageSelections = initializePageSelections(currentPages);
+            } else {
+              // Merge saved selections with current pages
+              pageSelections = mergePageSelections(savedSelections, currentPages);
+            }
+            
+            // Render page filter list with restored state
+            renderPageFilterList(currentPages);
+            
+            // Update preview summary with restored selections
+            updatePreviewSummary();
+          } else {
+            // No prototypes yet - just store the saved selections
+            pageSelections = savedSelections;
+          }
+        }
+        break;
+      case 'STORAGE_ERROR':
+        // Handle storage failures with user-friendly message
+        // Log to console for debugging
+        console.warn('Storage error:', msg.error);
+        // Show warning toast to user (non-intrusive)
+        if (msg.severity === 'warning') {
+          showToast('⚠️ ' + msg.error);
+        }
+        // Continue with in-memory state - no need to block user
         break;
     }
   };
@@ -980,10 +1311,12 @@
         formatDate(d, currentLanguage, { hour:'2-digit', minute:'2-digit', second:'2-digit' });
     }
 
-    // Update generate panel counters
-    const pages = groupByPage(prototypes);
-    document.getElementById('prev-protos').textContent = prototypes.length;
-    document.getElementById('prev-pages').textContent = Object.keys(pages).length;
+    // Extract page metadata and render page filter list
+    const pages = extractPageMetadata(prototypes);
+    renderPageFilterList(pages);
+
+    // Update generate panel counters with page selection filtering
+    updatePreviewSummary();
 
     const container = document.getElementById('list-container');
     if (prototypes.length === 0) {
@@ -1129,11 +1462,7 @@
 
   // ── Update preview text ──
   function updatePreviewText() {
-    const noteElement = document.getElementById('prev-note');
-    noteElement.textContent = getTranslation(
-      optPage ? 'generate.preview.noteDedicatedPage' : 'generate.preview.noteFirstPage',
-      currentLanguage
-    );
+    updatePreviewSummary(); // Update all preview elements including warning
   }
 
   // ── Generate frame ──
@@ -1143,7 +1472,13 @@
     parent.postMessage({
       pluginMessage: {
         type: 'GENERATE_FRAME',
-        options: { layout: selectedLayout, showUrls: optUrls, dedicatedPage: optPage, language: currentLanguage }
+        options: { 
+          layout: selectedLayout, 
+          showUrls: optUrls, 
+          dedicatedPage: optPage, 
+          language: currentLanguage,
+          selectedPages: pageSelections
+        }
       }
     }, '*');
   }

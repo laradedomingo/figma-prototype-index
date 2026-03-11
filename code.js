@@ -167,6 +167,22 @@ async function getAllPrototypes() {
     console.log("=== Total prototypes found:", allPrototypes.length, "===");
     return allPrototypes;
 }
+function extractPageMetadata(prototypes) {
+    const pageMap = new Map();
+
+    prototypes.forEach(proto => {
+        if (!pageMap.has(proto.pageId)) {
+            pageMap.set(proto.pageId, {
+                id: proto.pageId,
+                name: proto.pageName,
+                prototypeCount: 0
+            });
+        }
+        pageMap.get(proto.pageId).prototypeCount++;
+    });
+
+    return Array.from(pageMap.values());
+}
 function createSnapshot(prototypes) {
     return JSON.stringify(prototypes.map((p) => ({
         id: p.id,
@@ -196,15 +212,23 @@ async function generateIndexFrame(prototypes, options) {
         // Load all pages first
         await figma.loadAllPagesAsync();
         
+        // Filter prototypes by selected pages
+        let filteredPrototypes = prototypes;
+        if (options.selectedPages) {
+            filteredPrototypes = prototypes.filter(proto => 
+                options.selectedPages[proto.pageId] === true
+            );
+        }
+        
         // Group by page
         const pageGroups = {};
-        for (const p of prototypes) {
+        for (const p of filteredPrototypes) {
             if (!pageGroups[p.pageName])
                 pageGroups[p.pageName] = [];
             pageGroups[p.pageName].push(p);
         }
         const pageNames = Object.keys(pageGroups);
-        const totalPrototypes = prototypes.length;
+        const totalPrototypes = filteredPrototypes.length;
         const now = new Date();
         const dateStr = now.toLocaleDateString("es-ES", {
             day: "2-digit", month: "long", year: "numeric",
@@ -836,12 +860,11 @@ async function saveLanguageSetting(lang) {
         await figma.clientStorage.setAsync('language', lang);
     }
     catch (err) {
+        // Log storage save failures to console
         console.error('Failed to save language setting:', err);
         // Continue with in-memory state
-        figma.ui.postMessage({
-            type: 'SETTING_ERROR',
-            error: 'Could not save language preference'
-        });
+        // Error will be handled by the caller (SAVE_SETTING message handler)
+        throw err; // Re-throw to let caller handle user notification
     }
 }
 // Load settings on startup
@@ -849,9 +872,11 @@ async function loadSettings() {
     try {
         const dedicatedPage = await figma.clientStorage.getAsync('dedicatedPage');
         const language = await loadLanguageSetting();
+        const pageSelections = await figma.clientStorage.getAsync('pageSelections');
         const settings = {
             dedicatedPage: dedicatedPage !== undefined ? dedicatedPage : false,
-            language: language
+            language: language,
+            pageSelections: pageSelections || {}
         };
         figma.ui.postMessage({ type: "SETTINGS_LOADED", settings });
     }
@@ -860,7 +885,7 @@ async function loadSettings() {
         // Send default settings on error
         figma.ui.postMessage({
             type: "SETTINGS_LOADED",
-            settings: { dedicatedPage: false, language: 'es' }
+            settings: { dedicatedPage: false, language: 'es', pageSelections: {} }
         });
     }
 }
@@ -869,12 +894,14 @@ async function loadSettings() {
     await loadSettings();
     const initialPrototypes = await getAllPrototypes();
     lastSnapshot = createSnapshot(initialPrototypes);
+    const pages = extractPageMetadata(initialPrototypes);
     // Generate and send thumbnails
     generateThumbnailsForPrototypes(initialPrototypes).then((thumbnails) => {
         figma.ui.postMessage({
             type: "INITIAL_DATA",
             prototypes: initialPrototypes,
             thumbnails: thumbnails,
+            pages: pages,
             fileKey: figma.fileKey || null,
             fileName: figma.root.name,
             timestamp: Date.now(),
@@ -889,8 +916,15 @@ figma.ui.onmessage = async (msg) => {
         case "REFRESH": {
             const prototypes = await getAllPrototypes();
             lastSnapshot = createSnapshot(prototypes);
+            const pages = extractPageMetadata(prototypes);
             generateThumbnailsForPrototypes(prototypes).then((thumbnails) => {
-                figma.ui.postMessage({ type: "PROTOTYPES_DATA", prototypes, thumbnails, timestamp: Date.now() });
+                figma.ui.postMessage({ 
+                    type: "PROTOTYPES_DATA", 
+                    prototypes, 
+                    thumbnails, 
+                    pages: pages,
+                    timestamp: Date.now() 
+                });
             });
             break;
         }
@@ -936,8 +970,14 @@ figma.ui.onmessage = async (msg) => {
                 figma.ui.postMessage({ type: "SETTING_SAVED", key: msg.key });
             }
             catch (err) {
+                // Log storage save failures to console
                 console.error("Failed to save setting:", err);
-                figma.ui.postMessage({ type: "SETTING_ERROR", error: "Could not save setting" });
+                // Continue with in-memory state if save fails
+                figma.ui.postMessage({ 
+                    type: "STORAGE_ERROR", 
+                    error: `Could not save ${msg.key} setting. Your preference will be remembered during this session but may not persist after closing the plugin.`,
+                    severity: "warning"
+                });
             }
             break;
         }
@@ -957,6 +997,24 @@ figma.ui.onmessage = async (msg) => {
                 figma.ui.postMessage({
                     type: "SETTINGS_LOADED",
                     settings: { dedicatedPage: false, language: 'es' }
+                });
+            }
+            break;
+        }
+        case "SAVE_PAGE_SELECTIONS": {
+            try {
+                await figma.clientStorage.setAsync('pageSelections', msg.pageSelections);
+                figma.ui.postMessage({ type: "PAGE_SELECTIONS_SAVED" });
+            }
+            catch (err) {
+                // Log storage save failures to console
+                console.error("Failed to save page selections:", err);
+                // Continue with in-memory state if save fails
+                // Show user-friendly message if critical failure
+                figma.ui.postMessage({ 
+                    type: "STORAGE_ERROR", 
+                    error: "Could not save page selections. Your selections will be remembered during this session but may not persist after closing the plugin.",
+                    severity: "warning"
                 });
             }
             break;

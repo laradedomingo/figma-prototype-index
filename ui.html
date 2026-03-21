@@ -1817,11 +1817,12 @@
       sortAZ ? a.flowName.localeCompare(b.flowName) : b.flowName.localeCompare(a.flowName)
     );
     
-    // If no page headers requested, format as simple list
+    // If no page headers requested, format as simple list with page titles
     if (!includePageHeaders) {
       return sortedPrototypes.map(proto => {
         const url = proto.prototypeUrl || 'Local file - save to cloud to get URL';
-        return `${proto.flowName}: ${url}`;
+        const pageName = proto.pageName || 'Unknown Page';
+        return `${proto.flowName} (${pageName}): ${url}`;
       }).join('\n');
     }
     
@@ -1847,8 +1848,8 @@
   /**
    * Format prototype list into CSV format
    * Formats ALL prototypes (ignores page filter)
-   * Generates CSV with "Name,URL" header row
-   * Properly escapes commas and quotes in prototype names
+   * Generates CSV with "Name,Page,URL" header row
+   * Properly escapes commas and quotes in prototype names and page names
    * Handles prototypes without URLs (local file message)
    * 
    * @returns {string} Formatted prototype list as CSV
@@ -1862,19 +1863,23 @@
       sortAZ ? a.flowName.localeCompare(b.flowName) : b.flowName.localeCompare(a.flowName)
     );
     
-    // Start with header row
-    let csv = 'Name,URL\n';
+    // Start with header row including Page column
+    let csv = 'Name,Page,URL\n';
     
     // Add data rows
     sortedPrototypes.forEach(proto => {
       // Escape the name according to CSV rules
       const name = escapeCSVField(proto.flowName);
       
+      // Escape the page name
+      const pageName = proto.pageName || 'Unknown Page';
+      const escapedPageName = escapeCSVField(pageName);
+      
       // Get URL or local file message
       const url = proto.prototypeUrl || 'Local file - save to cloud to get URL';
       const escapedUrl = escapeCSVField(url);
       
-      csv += `${name},${escapedUrl}\n`;
+      csv += `${name},${escapedPageName},${escapedUrl}\n`;
     });
     
     return csv;

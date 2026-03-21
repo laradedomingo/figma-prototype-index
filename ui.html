@@ -1796,7 +1796,7 @@
   /**
    * Copy formatted prototype list to clipboard
    * Checks for empty prototype list or all pages deselected
-   * Uses navigator.clipboard.writeText() API
+   * Uses navigator.clipboard.writeText() API with textarea fallback
    * Handles clipboard API errors gracefully
    * Displays success or error toast notifications
    */
@@ -1814,27 +1814,50 @@
       return;
     }
     
-    // Check if clipboard API is available
-    if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      console.error('Clipboard API not available');
-      showToast(getTranslation('toast.copyError', currentLanguage));
-      return;
+    // Format the prototype list
+    const formattedText = formatPrototypeList({ includePageHeaders: false });
+    
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(formattedText);
+        showToast(getTranslation('toast.copied', currentLanguage));
+        return;
+      } catch (error) {
+        console.warn('Clipboard API failed, trying fallback:', error);
+        // Fall through to fallback method
+      }
     }
     
+    // Fallback method using textarea for Figma plugin context
     try {
-      // Format the prototype list
-      const formattedText = formatPrototypeList({ includePageHeaders: false });
+      const textarea = document.createElement('textarea');
+      textarea.value = formattedText;
+      textarea.style.position = 'fixed';
+      textarea.style.top = '0';
+      textarea.style.left = '0';
+      textarea.style.width = '2em';
+      textarea.style.height = '2em';
+      textarea.style.padding = '0';
+      textarea.style.border = 'none';
+      textarea.style.outline = 'none';
+      textarea.style.boxShadow = 'none';
+      textarea.style.background = 'transparent';
       
-      // Write to clipboard
-      await navigator.clipboard.writeText(formattedText);
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
       
-      // Show success toast
-      showToast(getTranslation('toast.copied', currentLanguage));
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      
+      if (successful) {
+        showToast(getTranslation('toast.copied', currentLanguage));
+      } else {
+        throw new Error('execCommand failed');
+      }
     } catch (error) {
-      // Log error for debugging
       console.error('Failed to copy to clipboard:', error);
-      
-      // Show error toast
       showToast(getTranslation('toast.copyError', currentLanguage));
     }
   }

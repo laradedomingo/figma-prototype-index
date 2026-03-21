@@ -452,6 +452,113 @@
     transition: opacity 0.2s; z-index: 100; text-transform: uppercase;
   }
   .copied.show { opacity: 1; }
+
+  /* ── FORMAT SELECTOR MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal-container {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 240px;
+    max-width: 320px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .modal-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  .modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .radio-option:hover {
+    background: var(--border);
+    border-color: var(--border-light);
+  }
+
+  .radio-option input[type="radio"] {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+
+  .radio-label {
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .modal-btn {
+    padding: 6px 14px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--sans);
+  }
+
+  .modal-btn-cancel {
+    background: var(--surface2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  .modal-btn-cancel:hover {
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .modal-btn-confirm {
+    background: var(--accent);
+    color: var(--text);
+  }
+
+  .modal-btn-confirm:hover {
+    background: #8b7bff;
+  }
 </style>
 </head>
 <body>
@@ -657,6 +764,27 @@
   <div class="footer-label" id="last-updated">—</div>
 </div>
 
+<!-- Format Selector Modal -->
+<div id="format-selector-modal" class="modal-overlay" style="display: none;">
+  <div class="modal-container">
+    <div class="modal-title" data-i18n="download.selectFormat">Select Format</div>
+    <div class="modal-content">
+      <label class="radio-option">
+        <input type="radio" name="format" value="txt" checked>
+        <span class="radio-label" data-i18n="download.formatTXT">TXT</span>
+      </label>
+      <label class="radio-option">
+        <input type="radio" name="format" value="csv">
+        <span class="radio-label" data-i18n="download.formatCSV">CSV</span>
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-cancel" id="format-cancel-btn" data-i18n="download.cancel">Cancel</button>
+      <button class="modal-btn modal-btn-confirm" id="format-confirm-btn" data-i18n="download.confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // ── Translation System ──
   
@@ -733,6 +861,11 @@
       
       // Download
       'download.formatPrompt': '¿Qué formato prefieres?',
+      'download.selectFormat': 'Seleccionar formato',
+      'download.formatTXT': 'TXT',
+      'download.formatCSV': 'CSV',
+      'download.confirm': 'Confirmar',
+      'download.cancel': 'Cancelar',
       
       // Footer
       'footer.version': 'Prototype Index',
@@ -810,6 +943,11 @@
       
       // Download
       'download.formatPrompt': 'Which format do you prefer?',
+      'download.selectFormat': 'Select Format',
+      'download.formatTXT': 'TXT',
+      'download.formatCSV': 'CSV',
+      'download.confirm': 'Confirm',
+      'download.cancel': 'Cancel',
       
       // Footer
       'footer.version': 'Prototype Index',
@@ -887,6 +1025,11 @@
       
       // Download
       'download.formatPrompt': 'Zein formato nahiago duzu?',
+      'download.selectFormat': 'Formatua hautatu',
+      'download.formatTXT': 'TXT',
+      'download.formatCSV': 'CSV',
+      'download.confirm': 'Baieztatu',
+      'download.cancel': 'Utzi',
       
       // Footer
       'footer.version': 'Prototype Index',
@@ -1839,20 +1982,75 @@
   /**
    * Display format selection dialog for download
    * Returns selected format or null if cancelled
-   * Uses translated prompt text
+   * Uses custom modal with radio buttons
    * 
-   * @returns {string|null} Selected format ('csv' or 'txt') or null if cancelled
+   * @returns {Promise<string|null>} Selected format ('csv' or 'txt') or null if cancelled
    */
   function showFormatSelector() {
-    // Get translated prompt text
-    const promptText = getTranslation('download.formatPrompt', currentLanguage);
-    
-    // Use browser confirm dialog
-    // OK = CSV, Cancel = TXT (but we need to handle actual cancel)
-    const result = confirm(promptText + '\n\nOK = CSV\nCancel = TXT');
-    
-    // Return selected format
-    return result ? 'csv' : 'txt';
+    return new Promise((resolve) => {
+      const modal = document.getElementById('format-selector-modal');
+      const confirmBtn = document.getElementById('format-confirm-btn');
+      const cancelBtn = document.getElementById('format-cancel-btn');
+      const txtRadio = modal.querySelector('input[value="txt"]');
+      const csvRadio = modal.querySelector('input[value="csv"]');
+      
+      // Update modal text with current language translations
+      modal.querySelector('.modal-title').textContent = getTranslation('download.selectFormat', currentLanguage);
+      modal.querySelector('[data-i18n="download.formatTXT"]').textContent = getTranslation('download.formatTXT', currentLanguage);
+      modal.querySelector('[data-i18n="download.formatCSV"]').textContent = getTranslation('download.formatCSV', currentLanguage);
+      confirmBtn.textContent = getTranslation('download.confirm', currentLanguage);
+      cancelBtn.textContent = getTranslation('download.cancel', currentLanguage);
+      
+      // Pre-select TXT as default
+      txtRadio.checked = true;
+      
+      // Show modal
+      modal.style.display = 'flex';
+      
+      // Cleanup function to remove event listeners and hide modal
+      const cleanup = () => {
+        modal.style.display = 'none';
+        confirmBtn.removeEventListener('click', handleConfirm);
+        cancelBtn.removeEventListener('click', handleCancel);
+        modal.removeEventListener('click', handleOverlayClick);
+        document.removeEventListener('keydown', handleEscape);
+      };
+      
+      // Confirm button handler
+      const handleConfirm = () => {
+        const selectedFormat = csvRadio.checked ? 'csv' : 'txt';
+        cleanup();
+        resolve(selectedFormat);
+      };
+      
+      // Cancel button handler
+      const handleCancel = () => {
+        cleanup();
+        resolve(null);
+      };
+      
+      // Overlay click handler (clicking outside modal)
+      const handleOverlayClick = (e) => {
+        if (e.target === modal) {
+          cleanup();
+          resolve(null);
+        }
+      };
+      
+      // Escape key handler
+      const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+          cleanup();
+          resolve(null);
+        }
+      };
+      
+      // Add event listeners
+      confirmBtn.addEventListener('click', handleConfirm);
+      cancelBtn.addEventListener('click', handleCancel);
+      modal.addEventListener('click', handleOverlayClick);
+      document.addEventListener('keydown', handleEscape);
+    });
   }
 
   /**
@@ -1927,11 +2125,11 @@
    * Calls showFormatSelector() to get user's format choice
    * Calls downloadFile() with selected format
    */
-  function handleDownloadList() {
-    // Show format selector and get user's choice
-    const format = showFormatSelector();
+  async function handleDownloadList() {
+    // Show format selector and get user's choice (now returns a Promise)
+    const format = await showFormatSelector();
     
-    // If user cancelled, format will be null (though our current implementation returns 'txt' for cancel)
+    // If user cancelled, format will be null
     // Download file with selected format
     if (format) {
       downloadFile(format);

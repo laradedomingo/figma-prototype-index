@@ -80,8 +80,8 @@ describe('Task 10.1: togglePage() function - Logic verification', () => {
     const path = require('path');
     const html = fs.readFileSync(path.join(__dirname, 'ui.html'), 'utf8');
     
-    // Extract savePageSelections function
-    const savePageSelectionsMatch = html.match(/function savePageSelections\(\)\s*{([^}]+)}/s);
+    // Extract savePageSelections function - match across multiple lines including nested braces
+    const savePageSelectionsMatch = html.match(/function savePageSelections\(\)\s*{([\s\S]*?)(?=\n\s*\/\*\*|\n\s*function\s)/);
     expect(savePageSelectionsMatch).toBeTruthy();
     
     const savePageSelectionsBody = savePageSelectionsMatch[1];
@@ -140,8 +140,9 @@ describe('Task 10.1: togglePage() function - Logic verification', () => {
     // 3. togglePage re-renders the page filter list
     expect(html).toMatch(/function togglePage\(pageId\)\s*{[^}]*renderPageFilterList/);
     
-    // 4. savePageSelections has debouncing
-    expect(html).toMatch(/function savePageSelections\(\)[^}]*setTimeout[^}]*300/s);
+    // 4. savePageSelections has debouncing - check for setTimeout and 300ms with broader search
+    expect(html).toContain('function savePageSelections()');
+    expect(html).toMatch(/function savePageSelections\(\)[\s\S]{0,800}setTimeout[\s\S]{0,300}300/);
   });
 
   test('Requirements validation: Task 10.1 requirements are met', () => {
@@ -160,6 +161,8 @@ describe('Task 10.1: togglePage() function - Logic verification', () => {
     
     // Requirement: Trigger debounced storage save (via togglePageSelection -> savePageSelections)
     expect(html).toMatch(/function togglePageSelection\(pageId\)[^}]*savePageSelections\(\)/);
-    expect(html).toMatch(/function savePageSelections\(\)[^}]*setTimeout[^}]*300/s);
+    // Check savePageSelections has setTimeout with 300ms - use broader search
+    expect(html).toContain('function savePageSelections()');
+    expect(html).toMatch(/function savePageSelections\(\)[\s\S]{0,800}setTimeout[\s\S]{0,300}300/);
   });
 });

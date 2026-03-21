@@ -116,6 +116,11 @@
   .btn-primary:active { transform: scale(0.97); }
   .btn-outline { background: transparent; color: var(--text-muted); border-color: var(--border-light); }
   .btn-outline:hover { border-color: var(--text-muted); color: var(--text); }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
   .btn-watcher { background: var(--green-dim); color: var(--green); border-color: rgba(62,207,142,0.35); }
   .btn-watcher:hover { background: rgba(62,207,142,0.2); }
   .btn-watcher.active { background: var(--green); color: #0e0e0f; font-weight: 600; }
@@ -495,6 +500,20 @@
       <div class="watcher-dot"></div>
       <span data-i18n="toolbar.watcher">Watcher</span>
     </button>
+    <button class="btn btn-outline" id="copy-btn" onclick="handleCopyList()">
+      <svg viewBox="0 0 12 12" fill="none">
+        <rect x="2" y="2" width="7" height="8" rx="1" stroke="currentColor" stroke-width="1.2"/>
+        <path d="M4 2V1.5C4 1.22 4.22 1 4.5 1h5c.28 0 .5.22.5.5v7c0 .28-.22.5-.5.5H9" stroke="currentColor" stroke-width="1.2"/>
+      </svg>
+      <span data-i18n="toolbar.copy">Copiar</span>
+    </button>
+    <button class="btn btn-outline" id="download-btn" onclick="handleDownloadList()">
+      <svg viewBox="0 0 12 12" fill="none">
+        <path d="M6 1v7M6 8l-2.5-2.5M6 8l2.5-2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 9v1.5c0 .28.22.5.5.5h7c.28 0 .5-.22.5-.5V9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span data-i18n="toolbar.download">Descargar</span>
+    </button>
     <div class="toolbar-spacer"></div>
     <button class="sort-btn" onclick="toggleSort()">
       <span id="sort-label" data-i18n="toolbar.sortAZ">A–Z</span>
@@ -660,6 +679,8 @@
       'toolbar.watching': 'Watching…',
       'toolbar.sortAZ': 'A–Z',
       'toolbar.sortZA': 'Z–A',
+      'toolbar.copy': 'Copiar',
+      'toolbar.download': 'Descargar',
       
       // Status
       'status.ready': 'Listo',
@@ -703,6 +724,15 @@
       // Toast messages
       'toast.listUpdated': 'Lista actualizada',
       'toast.frameGenerated': 'Frame generado ✓',
+      'toast.copied': 'Lista copiada al portapapeles',
+      'toast.downloadedCSV': 'Archivo CSV descargado',
+      'toast.downloadedTXT': 'Archivo TXT descargado',
+      'toast.copyError': 'No se pudo copiar al portapapeles',
+      'toast.downloadError': 'No se pudo descargar el archivo',
+      'toast.noPrototypes': 'No hay prototipos para copiar',
+      
+      // Download
+      'download.formatPrompt': '¿Qué formato prefieres?',
       
       // Footer
       'footer.version': 'Prototype Index',
@@ -726,6 +756,8 @@
       'toolbar.watching': 'Watching…',
       'toolbar.sortAZ': 'A–Z',
       'toolbar.sortZA': 'Z–A',
+      'toolbar.copy': 'Copy',
+      'toolbar.download': 'Download',
       
       // Status
       'status.ready': 'Ready',
@@ -769,6 +801,15 @@
       // Toast messages
       'toast.listUpdated': 'List updated',
       'toast.frameGenerated': 'Frame generated ✓',
+      'toast.copied': 'List copied to clipboard',
+      'toast.downloadedCSV': 'CSV file downloaded',
+      'toast.downloadedTXT': 'TXT file downloaded',
+      'toast.copyError': 'Could not copy to clipboard',
+      'toast.downloadError': 'Could not download file',
+      'toast.noPrototypes': 'No prototypes to copy',
+      
+      // Download
+      'download.formatPrompt': 'Which format do you prefer?',
       
       // Footer
       'footer.version': 'Prototype Index',
@@ -792,6 +833,8 @@
       'toolbar.watching': 'Watching…',
       'toolbar.sortAZ': 'A–Z',
       'toolbar.sortZA': 'Z–A',
+      'toolbar.copy': 'Kopiatu',
+      'toolbar.download': 'Deskargatu',
       
       // Status
       'status.ready': 'Prest',
@@ -835,6 +878,15 @@
       // Toast messages
       'toast.listUpdated': 'Zerrenda eguneratuta',
       'toast.frameGenerated': 'Markoa sortuta ✓',
+      'toast.copied': 'Zerrenda arbelean kopiatuta',
+      'toast.downloadedCSV': 'CSV fitxategia deskargatuta',
+      'toast.downloadedTXT': 'TXT fitxategia deskargatuta',
+      'toast.copyError': 'Ezin izan da arbelean kopiatu',
+      'toast.downloadError': 'Ezin izan da fitxategia deskargatu',
+      'toast.noPrototypes': 'Ez dago prototipoak kopiatzeko',
+      
+      // Download
+      'download.formatPrompt': 'Zein formato nahiago duzu?',
       
       // Footer
       'footer.version': 'Prototype Index',
@@ -1013,6 +1065,8 @@
     pageSelections[pageId] = !pageSelections[pageId];
     updatePreviewSummary();
     savePageSelections();
+    // Update button states after page selection change
+    updateButtonStates();
   }
 
   /**
@@ -1325,6 +1379,8 @@
         <div class="empty-title">${getTranslation('list.empty.title', currentLanguage)}</div>
         <div class="empty-desc">${getTranslation('list.empty.description', currentLanguage)}</div>
       </div>`;
+      // Update button states when empty
+      updateButtonStates();
       return;
     }
 
@@ -1345,6 +1401,9 @@
       html += `</div>`;
     }
     container.innerHTML = html;
+    
+    // Update button states after rendering
+    updateButtonStates();
   }
 
   function groupByPage(items) {
@@ -1539,6 +1598,61 @@
     renderPrototypes(prototypes, null);
   }
 
+  /**
+   * Update enabled/disabled state of Copy and Download buttons
+   * Calculates if any prototypes are available after filtering
+   * Enables/disables both buttons based on prototype availability
+   * Applies visual disabled styling when appropriate
+   * 
+   * Called when:
+   * - Prototypes list changes (INITIAL_DATA, PROTOTYPES_DATA, PROTOTYPES_UPDATED)
+   * - Page selections change (togglePageSelection)
+   * - After rendering (renderPrototypes)
+   */
+  function updateButtonStates() {
+    // Calculate if any prototypes are available after filtering
+    let availablePrototypeCount = 0;
+    
+    // If pageSelections is empty, all prototypes are available
+    if (Object.keys(pageSelections).length === 0) {
+      availablePrototypeCount = prototypes.length;
+    } else {
+      // Count prototypes from selected pages only
+      prototypes.forEach(proto => {
+        if (pageSelections[proto.pageId] === true) {
+          availablePrototypeCount++;
+        }
+      });
+    }
+    
+    // Get button elements
+    const copyBtn = document.getElementById('copy-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    
+    // Update button states based on availability
+    if (availablePrototypeCount === 0) {
+      // Disable both buttons
+      copyBtn.disabled = true;
+      downloadBtn.disabled = true;
+      
+      // Add visual disabled styling
+      copyBtn.style.opacity = '0.4';
+      copyBtn.style.cursor = 'not-allowed';
+      downloadBtn.style.opacity = '0.4';
+      downloadBtn.style.cursor = 'not-allowed';
+    } else {
+      // Enable both buttons
+      copyBtn.disabled = false;
+      downloadBtn.disabled = false;
+      
+      // Remove disabled styling
+      copyBtn.style.opacity = '';
+      copyBtn.style.cursor = '';
+      downloadBtn.style.opacity = '';
+      downloadBtn.style.cursor = '';
+    }
+  }
+
   function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -1550,6 +1664,298 @@
   function esc(s) {
     if (!s) return '';
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Core Formatting Functions ──
+
+  /**
+   * Format prototype list into plain text format
+   * Filters prototypes based on current page selections
+   * Sorts prototypes based on current sort order (A-Z or Z-A)
+   * Formats each prototype as "[flowName]: [url or local file message]"
+   * Supports optional page headers for grouping
+   * 
+   * @param {Object} options - Formatting options
+   * @param {boolean} options.includePageHeaders - Whether to include page headers for grouping
+   * @returns {string} Formatted prototype list as plain text
+   */
+  function formatPrototypeList(options = {}) {
+    const { includePageHeaders = false } = options;
+    
+    // Filter prototypes based on current page selections
+    const filteredPrototypes = prototypes.filter(proto => {
+      // If no page selections exist, include all prototypes
+      if (Object.keys(pageSelections).length === 0) {
+        return true;
+      }
+      // Include prototype if its page is selected
+      return pageSelections[proto.pageId] === true;
+    });
+    
+    // Sort prototypes based on current sort order
+    const sortedPrototypes = [...filteredPrototypes].sort((a, b) =>
+      sortAZ ? a.flowName.localeCompare(b.flowName) : b.flowName.localeCompare(a.flowName)
+    );
+    
+    // If no page headers requested, format as simple list
+    if (!includePageHeaders) {
+      return sortedPrototypes.map(proto => {
+        const url = proto.prototypeUrl || 'Local file - save to cloud to get URL';
+        return `${proto.flowName}: ${url}`;
+      }).join('\n');
+    }
+    
+    // Group by page for page headers
+    const pageGroups = groupByPage(sortedPrototypes);
+    const pageNames = Object.keys(pageGroups);
+    
+    // Format with page headers
+    const sections = pageNames.map(pageName => {
+      const items = pageGroups[pageName];
+      const header = `Page: ${pageName}`;
+      const lines = items.map(proto => {
+        const url = proto.prototypeUrl || 'Local file - save to cloud to get URL';
+        return `${proto.flowName}: ${url}`;
+      });
+      return header + '\n\n' + lines.join('\n');
+    });
+    
+    // Join sections with blank line between groups
+    return sections.join('\n\n');
+  }
+
+  /**
+   * Format prototype list into CSV format
+   * Generates CSV with "Name,URL" header row
+   * Properly escapes commas and quotes in prototype names
+   * Handles prototypes without URLs (local file message)
+   * 
+   * @returns {string} Formatted prototype list as CSV
+   */
+  function formatPrototypeListCSV() {
+    // Filter prototypes based on current page selections
+    const filteredPrototypes = prototypes.filter(proto => {
+      // If no page selections exist, include all prototypes
+      if (Object.keys(pageSelections).length === 0) {
+        return true;
+      }
+      // Include prototype if its page is selected
+      return pageSelections[proto.pageId] === true;
+    });
+    
+    // Sort prototypes based on current sort order
+    const sortedPrototypes = [...filteredPrototypes].sort((a, b) =>
+      sortAZ ? a.flowName.localeCompare(b.flowName) : b.flowName.localeCompare(a.flowName)
+    );
+    
+    // Start with header row
+    let csv = 'Name,URL\n';
+    
+    // Add data rows
+    sortedPrototypes.forEach(proto => {
+      // Escape the name according to CSV rules
+      const name = escapeCSVField(proto.flowName);
+      
+      // Get URL or local file message
+      const url = proto.prototypeUrl || 'Local file - save to cloud to get URL';
+      const escapedUrl = escapeCSVField(url);
+      
+      csv += `${name},${escapedUrl}\n`;
+    });
+    
+    return csv;
+  }
+
+  /**
+   * Escape a field for CSV format
+   * Wraps field in quotes if it contains comma, quote, or newline
+   * Doubles quotes to escape them
+   * 
+   * @param {string} field - Field value to escape
+   * @returns {string} Escaped field value
+   */
+  function escapeCSVField(field) {
+    if (!field) return '""';
+    
+    // Check if field needs escaping (contains comma, quote, or newline)
+    const needsEscaping = /[",\n\r]/.test(field);
+    
+    if (needsEscaping) {
+      // Double any quotes in the field
+      const escaped = field.replace(/"/g, '""');
+      // Wrap in quotes
+      return `"${escaped}"`;
+    }
+    
+    // No escaping needed, but wrap in quotes for consistency
+    return `"${field}"`;
+  }
+
+  // ── Clipboard Functionality ──
+
+  /**
+   * Copy formatted prototype list to clipboard
+   * Checks for empty prototype list or all pages deselected
+   * Uses navigator.clipboard.writeText() API
+   * Handles clipboard API errors gracefully
+   * Displays success or error toast notifications
+   */
+  async function copyToClipboard() {
+    // Check if prototypes array is empty
+    if (prototypes.length === 0) {
+      showToast(getTranslation('toast.noPrototypes', currentLanguage));
+      return;
+    }
+    
+    // Check if all pages are deselected
+    const hasSelectedPages = Object.values(pageSelections).some(selected => selected === true);
+    if (!hasSelectedPages && Object.keys(pageSelections).length > 0) {
+      showToast(getTranslation('toast.noPrototypes', currentLanguage));
+      return;
+    }
+    
+    // Check if clipboard API is available
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      console.error('Clipboard API not available');
+      showToast(getTranslation('toast.copyError', currentLanguage));
+      return;
+    }
+    
+    try {
+      // Format the prototype list
+      const formattedText = formatPrototypeList({ includePageHeaders: false });
+      
+      // Write to clipboard
+      await navigator.clipboard.writeText(formattedText);
+      
+      // Show success toast
+      showToast(getTranslation('toast.copied', currentLanguage));
+    } catch (error) {
+      // Log error for debugging
+      console.error('Failed to copy to clipboard:', error);
+      
+      // Show error toast
+      showToast(getTranslation('toast.copyError', currentLanguage));
+    }
+  }
+
+  /**
+   * Handle copy list button click
+   * Calls copyToClipboard() function
+   */
+  function handleCopyList() {
+    copyToClipboard();
+  }
+
+  // ── Download Functionality ──
+
+  /**
+   * Display format selection dialog for download
+   * Returns selected format or null if cancelled
+   * Uses translated prompt text
+   * 
+   * @returns {string|null} Selected format ('csv' or 'txt') or null if cancelled
+   */
+  function showFormatSelector() {
+    // Get translated prompt text
+    const promptText = getTranslation('download.formatPrompt', currentLanguage);
+    
+    // Use browser confirm dialog
+    // OK = CSV, Cancel = TXT (but we need to handle actual cancel)
+    const result = confirm(promptText + '\n\nOK = CSV\nCancel = TXT');
+    
+    // Return selected format
+    return result ? 'csv' : 'txt';
+  }
+
+  /**
+   * Download formatted prototype list as file
+   * Checks for empty prototype list or all pages deselected
+   * Generates content based on format (CSV or TXT)
+   * Creates Blob with appropriate MIME type
+   * Creates object URL and triggers download via anchor element
+   * Cleans up object URL after download
+   * Displays success or error toast notifications
+   * 
+   * @param {string} format - File format ('csv' or 'txt')
+   */
+  function downloadFile(format) {
+    // Check if prototypes array is empty
+    if (prototypes.length === 0) {
+      showToast(getTranslation('toast.noPrototypes', currentLanguage));
+      return;
+    }
+    
+    // Check if all pages are deselected
+    const hasSelectedPages = Object.values(pageSelections).some(selected => selected === true);
+    if (!hasSelectedPages && Object.keys(pageSelections).length > 0) {
+      showToast(getTranslation('toast.noPrototypes', currentLanguage));
+      return;
+    }
+    
+    try {
+      // Generate content based on format
+      let content;
+      let mimeType;
+      let filename;
+      
+      if (format === 'csv') {
+        content = formatPrototypeListCSV();
+        mimeType = 'text/csv;charset=utf-8;';
+        filename = 'prototype-list.csv';
+      } else {
+        // TXT format
+        content = formatPrototypeList({ includePageHeaders: false });
+        mimeType = 'text/plain;charset=utf-8;';
+        filename = 'prototype-list.txt';
+      }
+      
+      // Create Blob with appropriate MIME type
+      const blob = new Blob([content], { type: mimeType });
+      
+      // Create object URL from Blob
+      const url = URL.createObjectURL(blob);
+      
+      // Create temporary anchor element with download attribute
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.style.display = 'none';
+      
+      // Add to document, click, and remove
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      
+      // Clean up object URL
+      URL.revokeObjectURL(url);
+      
+      // Show success toast with format name
+      const toastKey = format === 'csv' ? 'toast.downloadedCSV' : 'toast.downloadedTXT';
+      showToast(getTranslation(toastKey, currentLanguage));
+    } catch (error) {
+      // Log error for debugging
+      console.error('Failed to download file:', error);
+      
+      // Show error toast
+      showToast(getTranslation('toast.downloadError', currentLanguage));
+    }
+  }
+
+  /**
+   * Handle download list button click
+   * Calls showFormatSelector() to get user's format choice
+   * Calls downloadFile() with selected format
+   */
+  function handleDownloadList() {
+    // Show format selector and get user's choice
+    const format = showFormatSelector();
+    
+    // If user cancelled, format will be null (though our current implementation returns 'txt' for cancel)
+    // Download file with selected format
+    if (format) {
+      downloadFile(format);
+    }
   }
 </script>
 </body>

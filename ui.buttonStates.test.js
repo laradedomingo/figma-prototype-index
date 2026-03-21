@@ -50,9 +50,8 @@ describe('Task 6: Button State Management', () => {
     });
 
     test('calculates available prototype count after filtering', () => {
-      // Should check pageSelections and count prototypes from selected pages
-      expect(updateButtonStatesBody).toMatch(/availablePrototypeCount/);
-      expect(updateButtonStatesBody).toMatch(/pageSelections\[proto\.pageId\]\s*===\s*true/);
+      // Updated: Now uses prototypes.length directly instead of filtering by pageSelections
+      expect(updateButtonStatesBody).toMatch(/prototypes\.length/);
     });
 
     test('disables both buttons when no prototypes available', () => {
@@ -128,8 +127,8 @@ describe('Task 6: Button State Management', () => {
 
   describe('Requirements validation', () => {
     test('Requirement 5.1: Copy button disabled when prototype list empty', () => {
-      // updateButtonStates should check availablePrototypeCount === 0
-      expect(updateButtonStatesBody).toMatch(/availablePrototypeCount\s*===\s*0/);
+      // Updated: Now checks prototypes.length === 0 instead of availablePrototypeCount
+      expect(updateButtonStatesBody).toMatch(/prototypes\.length\s*===\s*0/);
       expect(updateButtonStatesBody).toMatch(/copyBtn\.disabled\s*=\s*true/);
     });
 
@@ -143,8 +142,8 @@ describe('Task 6: Button State Management', () => {
     });
 
     test('Requirement 5.5: Copy button disabled when all pages deselected', () => {
-      // Function should count prototypes from selected pages only
-      expect(updateButtonStatesBody).toMatch(/pageSelections\[proto\.pageId\]\s*===\s*true/);
+      // Updated: Now copies ALL prototypes, so button is only disabled when prototypes.length === 0
+      expect(updateButtonStatesBody).toMatch(/prototypes\.length\s*===\s*0/);
     });
 
     test('Requirement 13.1: Download button disabled when prototype list empty', () => {
@@ -162,15 +161,15 @@ describe('Task 6: Button State Management', () => {
     });
 
     test('Requirement 13.4: Download button disabled when all pages deselected', () => {
-      // Same logic as copy button - uses availablePrototypeCount
-      expect(updateButtonStatesBody).toMatch(/availablePrototypeCount\s*===\s*0/);
+      // Updated: Now downloads ALL prototypes, so button is only disabled when prototypes.length === 0
+      expect(updateButtonStatesBody).toMatch(/prototypes\.length\s*===\s*0/);
       expect(updateButtonStatesBody).toMatch(/downloadBtn\.disabled\s*=\s*true/);
     });
 
     test('Requirement 13.5: Button states synchronized', () => {
       // Both buttons should be in the same if/else blocks
       // Check that both are disabled together
-      const disableBlock = updateButtonStatesBody.match(/if\s*\([^{]*availablePrototypeCount\s*===\s*0[^{]*\)\s*\{[^}]*copyBtn\.disabled[^}]*downloadBtn\.disabled[^}]*\}/s);
+      const disableBlock = updateButtonStatesBody.match(/if\s*\([^{]*prototypes\.length\s*===\s*0[^{]*\)\s*\{[^}]*copyBtn\.disabled[^}]*downloadBtn\.disabled[^}]*\}/s);
       expect(disableBlock).toBeTruthy();
       
       // Check that both are enabled together in else block

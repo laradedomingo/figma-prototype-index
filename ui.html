@@ -1600,8 +1600,7 @@
 
   /**
    * Update enabled/disabled state of Copy and Download buttons
-   * Calculates if any prototypes are available after filtering
-   * Enables/disables both buttons based on prototype availability
+   * Enables/disables both buttons based on whether any prototypes exist
    * Applies visual disabled styling when appropriate
    * 
    * Called when:
@@ -1610,27 +1609,12 @@
    * - After rendering (renderPrototypes)
    */
   function updateButtonStates() {
-    // Calculate if any prototypes are available after filtering
-    let availablePrototypeCount = 0;
-    
-    // If pageSelections is empty, all prototypes are available
-    if (Object.keys(pageSelections).length === 0) {
-      availablePrototypeCount = prototypes.length;
-    } else {
-      // Count prototypes from selected pages only
-      prototypes.forEach(proto => {
-        if (pageSelections[proto.pageId] === true) {
-          availablePrototypeCount++;
-        }
-      });
-    }
-    
     // Get button elements
     const copyBtn = document.getElementById('copy-btn');
     const downloadBtn = document.getElementById('download-btn');
     
-    // Update button states based on availability
-    if (availablePrototypeCount === 0) {
+    // Update button states based on whether any prototypes exist
+    if (prototypes.length === 0) {
       // Disable both buttons
       copyBtn.disabled = true;
       downloadBtn.disabled = true;
@@ -1670,7 +1654,7 @@
 
   /**
    * Format prototype list into plain text format
-   * Filters prototypes based on current page selections
+   * Formats ALL prototypes (ignores page filter)
    * Sorts prototypes based on current sort order (A-Z or Z-A)
    * Formats each prototype as "[flowName]: [url or local file message]"
    * Supports optional page headers for grouping
@@ -1682,18 +1666,11 @@
   function formatPrototypeList(options = {}) {
     const { includePageHeaders = false } = options;
     
-    // Filter prototypes based on current page selections
-    const filteredPrototypes = prototypes.filter(proto => {
-      // If no page selections exist, include all prototypes
-      if (Object.keys(pageSelections).length === 0) {
-        return true;
-      }
-      // Include prototype if its page is selected
-      return pageSelections[proto.pageId] === true;
-    });
+    // Use ALL prototypes (ignore page filter for copy/download)
+    const allPrototypes = prototypes;
     
     // Sort prototypes based on current sort order
-    const sortedPrototypes = [...filteredPrototypes].sort((a, b) =>
+    const sortedPrototypes = [...allPrototypes].sort((a, b) =>
       sortAZ ? a.flowName.localeCompare(b.flowName) : b.flowName.localeCompare(a.flowName)
     );
     
@@ -1726,6 +1703,7 @@
 
   /**
    * Format prototype list into CSV format
+   * Formats ALL prototypes (ignores page filter)
    * Generates CSV with "Name,URL" header row
    * Properly escapes commas and quotes in prototype names
    * Handles prototypes without URLs (local file message)
@@ -1733,18 +1711,11 @@
    * @returns {string} Formatted prototype list as CSV
    */
   function formatPrototypeListCSV() {
-    // Filter prototypes based on current page selections
-    const filteredPrototypes = prototypes.filter(proto => {
-      // If no page selections exist, include all prototypes
-      if (Object.keys(pageSelections).length === 0) {
-        return true;
-      }
-      // Include prototype if its page is selected
-      return pageSelections[proto.pageId] === true;
-    });
+    // Use ALL prototypes (ignore page filter for copy/download)
+    const allPrototypes = prototypes;
     
     // Sort prototypes based on current sort order
-    const sortedPrototypes = [...filteredPrototypes].sort((a, b) =>
+    const sortedPrototypes = [...allPrototypes].sort((a, b) =>
       sortAZ ? a.flowName.localeCompare(b.flowName) : b.flowName.localeCompare(a.flowName)
     );
     
@@ -1795,7 +1766,7 @@
 
   /**
    * Copy formatted prototype list to clipboard
-   * Checks for empty prototype list or all pages deselected
+   * Copies ALL prototypes (ignores page filter)
    * Uses navigator.clipboard.writeText() API with textarea fallback
    * Handles clipboard API errors gracefully
    * Displays success or error toast notifications
@@ -1807,14 +1778,7 @@
       return;
     }
     
-    // Check if all pages are deselected
-    const hasSelectedPages = Object.values(pageSelections).some(selected => selected === true);
-    if (!hasSelectedPages && Object.keys(pageSelections).length > 0) {
-      showToast(getTranslation('toast.noPrototypes', currentLanguage));
-      return;
-    }
-    
-    // Format the prototype list
+    // Format the prototype list (includes ALL prototypes)
     const formattedText = formatPrototypeList({ includePageHeaders: false });
     
     // Try modern clipboard API first
@@ -1893,7 +1857,7 @@
 
   /**
    * Download formatted prototype list as file
-   * Checks for empty prototype list or all pages deselected
+   * Downloads ALL prototypes (ignores page filter)
    * Generates content based on format (CSV or TXT)
    * Creates Blob with appropriate MIME type
    * Creates object URL and triggers download via anchor element
@@ -1909,15 +1873,8 @@
       return;
     }
     
-    // Check if all pages are deselected
-    const hasSelectedPages = Object.values(pageSelections).some(selected => selected === true);
-    if (!hasSelectedPages && Object.keys(pageSelections).length > 0) {
-      showToast(getTranslation('toast.noPrototypes', currentLanguage));
-      return;
-    }
-    
     try {
-      // Generate content based on format
+      // Generate content based on format (includes ALL prototypes)
       let content;
       let mimeType;
       let filename;

@@ -151,7 +151,9 @@ function getAllPrototypes() {
           "?node-id=" + nodeIdEncoded +
           "&page-id=" + pageIdEncoded +
           "&starting-point-node-id=" + nodeIdEncoded
-        : null;
+        : "figma://proto?node-id=" + nodeIdEncoded +
+          "&page-id=" + pageIdEncoded +
+          "&starting-point-node-id=" + nodeIdEncoded;
 
       // Debug: Log URL generation details
       console.log("Prototype:", flowName);
